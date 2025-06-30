@@ -449,14 +449,11 @@ class LanguageMetricsArgs:
     """Arguments for per-language metrics tracking"""
 
     compute_interval: int = 100
+    # Paths to individual files
     test_datasets: Optional[List[Path]] = None  # assume corpus_name/eng_Latn.txt format etc.
     bpec_dataset: Optional[Path] = None  # for normalizing BPC -> Bits per Englsh Character corpus
     generation_samples: int = 1000  # Number of tokens to generate for Zipf/Heaps
     batch_size: int = 32  # Batch size for evaluation
-
-    def __post_init__(self):
-        if self.bpec_dataset not in self.bpec_dataset:
-            raise ValueError("The English reference has to be available for BPEC and IP.")
 
 
 @dataclass
