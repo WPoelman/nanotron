@@ -245,18 +245,25 @@ class DistributedTrainer:
             log_rank(str(checkpoint_metadata), logger=logger, level=logging.INFO, rank=0)
             self.metadata: TrainingMetadata = checkpoint_metadata.metas
             # In case of a new datastage, metadata will be updated in `get_dataloader`
-            assert (
-                self.config.tokens.train_steps > self.metadata.last_train_step
-            ), f"Loaded checkpoint has already trained {self.metadata.last_train_step} batches, you need to specify a higher `config.tokens.train_steps`"
+            assert self.config.tokens.train_steps > self.metadata.last_train_step, (
+                f"Loaded checkpoint has already trained {self.metadata.last_train_step} batches, you need to specify a higher `config.tokens.train_steps`"
+            )
         else:
             data_stages = [
                 DataStageMetadata(
-                    name=stage.name, start_training_step=stage.start_training_step, consumed_train_samples=0, sequence_length=stage.sequence_length
+                    name=stage.name,
+                    start_training_step=stage.start_training_step,
+                    consumed_train_samples=0,
+                    sequence_length=stage.sequence_length,
                 )
                 for stage in self.config.data_stages
             ]
             self.metadata: TrainingMetadata = TrainingMetadata(
-                consumed_train_samples=0, consumed_tokens_total=0, last_train_step=0, last_stage_idx=0, data_stages=data_stages
+                consumed_train_samples=0,
+                consumed_tokens_total=0,
+                last_train_step=0,
+                last_stage_idx=0,
+                data_stages=data_stages,
             )
 
         # Setup tensorboard write and log writers on output rank
@@ -269,7 +276,7 @@ class DistributedTrainer:
         self.n_micro_batches_per_batch = self.config.tokens.batch_accumulation_per_replica
         self.global_batch_size = (
             self.micro_batch_size * self.n_micro_batches_per_batch * self.parallel_context.dp_pg.size()
-        ) # in terms of samples
+        )  # in terms of samples
         self.sequence_length = (
             self.config.tokens.sequence_length
         )  # Global sequence length not divided by context parallel size
@@ -281,9 +288,7 @@ class DistributedTrainer:
 
         log_libraries_versions(logger=logger)
         log_rank("Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
-        log_rank(
-            f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0
-        )  # noqa
+        log_rank(f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0)  # noqa
         log_rank(pformat(self.config), logger=logger, level=logging.INFO, rank=0)
         log_rank("Model Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
         log_rank(pformat(self.model_config), logger=logger, level=logging.INFO, rank=0)
@@ -331,9 +336,9 @@ class DistributedTrainer:
                 level=logging.WARNING,
                 rank=0,
             )
-            assert (
-                os.environ.get("NANOTRON_BENCHMARK", "0") != "1"
-            ), "Sanity checks are enabled while you're running a benchmark. Make sure to disable them by setting `config.general.ignore_sanity_checks` to `True`"
+            assert os.environ.get("NANOTRON_BENCHMARK", "0") != "1", (
+                "Sanity checks are enabled while you're running a benchmark. Make sure to disable them by setting `config.general.ignore_sanity_checks` to `True`"
+            )
 
         metadata: TrainingMetadata = self.metadata
 
@@ -505,6 +510,7 @@ class DistributedTrainer:
                         rank=0,
                     )
 
+                print(dataloaders)
                 dataloader = dataloaders[stage.name]
                 # NOTE: if a dataloader is lazy initialized, we need to call it to initialize it
                 dataloader = dataloader() if callable(dataloader) else dataloader
@@ -562,17 +568,22 @@ class DistributedTrainer:
                 outputs, loss_avg, z_loss_avg, tbi_logs = self.training_step(dataloader=self.current_dataloader)
 
                 # Update consumption tracking for current batch
-                if hasattr(self.current_base_dl, "dataset") and hasattr(self.current_base_dl.dataset, "update_consumption_metrics"):
+                if hasattr(self.current_base_dl, "dataset") and hasattr(
+                    self.current_base_dl.dataset, "update_consumption_metrics"
+                ):
                     # TODO: only works for BlendableDataset
                     self.current_base_dl.dataset.update_consumption_metrics(
-                        start_idx=(self.iteration_step - 1) * self.global_batch_size,  # assumes we start from iteration_step=1
+                        start_idx=(self.iteration_step - 1)
+                        * self.global_batch_size,  # assumes we start from iteration_step=1
                         end_idx=self.iteration_step * self.global_batch_size,
                         sequence_length=self.sequence_length,
                     )
 
                 # Training Logs
                 # Track consumed tokens for all dataset folders in current stage
-                if hasattr(self.current_base_dl, "dataset"):
+                if hasattr(self.current_base_dl, "dataset") and hasattr(
+                    self.current_base_dl.dataset, "get_consumption_stats"
+                ):
                     consumption_stats = self.current_base_dl.dataset.get_consumption_stats()
                     current_stage = self.metadata.data_stages[self.metadata.last_stage_idx]
 
@@ -581,11 +592,13 @@ class DistributedTrainer:
                         current_stage.consumed_tokens_per_dataset_folder[folder_path] = stats["tokens"]
 
                 # Original consumption tracking
-                self.metadata.consumed_train_samples += self.global_batch_size # TODO: Legacy: idc abt this
+                self.metadata.consumed_train_samples += self.global_batch_size  # TODO: Legacy: idc abt this
                 self.metadata.consumed_tokens_total += self.global_batch_size * self.sequence_length
                 self.metadata.last_train_step = self.iteration_step
                 self.metadata.current_stage.consumed_train_samples += self.global_batch_size
-                assert self.metadata.current_stage.sequence_length == self.sequence_length, "Sequence length mismatch between the current stage and the global sequence length"
+                assert self.metadata.current_stage.sequence_length == self.sequence_length, (
+                    "Sequence length mismatch between the current stage and the global sequence length"
+                )
 
                 if (self.iteration_step - 1) % self.config.logging.iteration_step_info_interval == 0:
                     self.train_step_logs(outputs=outputs, loss_avg=loss_avg, z_loss_avg=z_loss_avg, tbi_logs=tbi_logs)
@@ -629,9 +642,9 @@ class DistributedTrainer:
 
         if isinstance(self.model, DistributedDataParallel) and self.grad_accumulator is not None:
             # Wait for fp32 grads allreduce to finish to make sure grads are synced across DP
-            assert (
-                self.grad_accumulator.fp32_grads_allreduce_handle is not None
-            ), "No fp32_grads_allreduce_handle maybe you're using only a single training process"
+            assert self.grad_accumulator.fp32_grads_allreduce_handle is not None, (
+                "No fp32_grads_allreduce_handle maybe you're using only a single training process"
+            )
             if isinstance(self.grad_accumulator.fp32_grads_allreduce_handle, list):
                 for handle in self.grad_accumulator.fp32_grads_allreduce_handle:
                     handle.wait()
@@ -691,7 +704,9 @@ class DistributedTrainer:
             else:
                 z_loss_avg = None
             # sync loss across DP-CP (we should do the same for z_loss but it's only for logging so let's not sync it rn)
-            handle = dist.all_reduce(loss_avg, group=self.parallel_context.dp_cp_pg, async_op=True, op=dist.ReduceOp.AVG)
+            handle = dist.all_reduce(
+                loss_avg, group=self.parallel_context.dp_cp_pg, async_op=True, op=dist.ReduceOp.AVG
+            )
         else:
             z_loss_avg = None
             loss_avg = None
@@ -867,10 +882,18 @@ class DistributedTrainer:
                 basic_log_entries.append(LogItem(f"tbi_logs/{name}_min", tensor.min().item(), "human_format"))
                 # per head logs
                 for head_idx in range(tensor.shape[0]):
-                    basic_log_entries.append(LogItem(f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format"))
-                    basic_log_entries.append(LogItem(f"tbi_logs/{name}/head_{head_idx}_std", tensor[head_idx].std().item(), "human_format"))
-                    basic_log_entries.append(LogItem(f"tbi_logs/{name}/head_{head_idx}_max", tensor[head_idx].max().item(), "human_format"))
-                    basic_log_entries.append(LogItem(f"tbi_logs/{name}/head_{head_idx}_min", tensor[head_idx].min().item(), "human_format"))
+                    basic_log_entries.append(
+                        LogItem(f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format")
+                    )
+                    basic_log_entries.append(
+                        LogItem(f"tbi_logs/{name}/head_{head_idx}_std", tensor[head_idx].std().item(), "human_format")
+                    )
+                    basic_log_entries.append(
+                        LogItem(f"tbi_logs/{name}/head_{head_idx}_max", tensor[head_idx].max().item(), "human_format")
+                    )
+                    basic_log_entries.append(
+                        LogItem(f"tbi_logs/{name}/head_{head_idx}_min", tensor[head_idx].min().item(), "human_format")
+                    )
 
         if os.environ.get("DEBUG_CPU", "0") == "1":
             basic_log_entries.extend(get_cpu_logitems())
@@ -883,7 +906,9 @@ class DistributedTrainer:
             assert self.current_base_dl is not None, "current_base_dl should be defined"
 
             # Log consumption statistics
-            if hasattr(self.current_base_dl, "dataset"):
+            if hasattr(self.current_base_dl, "dataset") and hasattr(
+                self.current_base_dl.dataset, "get_consumption_stats"
+            ):
                 for dataset_name, stats in self.current_base_dl.dataset.get_consumption_stats().items():
                     basic_log_entries.extend(
                         [
@@ -904,9 +929,9 @@ class DistributedTrainer:
         )
 
         if should_log_detailed_metrics_to_wandb:
-            assert not (
-                wandb.run is None and tp_size > 1 and dp_cp_rank == 0
-            ), f"WandB is not initialized for TP rank {tp_rank}, but logging was requested. Make sure that wandb is initialize before training."
+            assert not (wandb.run is None and tp_size > 1 and dp_cp_rank == 0), (
+                f"WandB is not initialized for TP rank {tp_rank}, but logging was requested. Make sure that wandb is initialize before training."
+            )
             all_log_entries = list(basic_log_entries)
 
             # Collect all metrics based on the log level
@@ -1015,9 +1040,9 @@ class DistributedTrainer:
 
     def _init_model_instance(self) -> NanotronModel:
         model_config_cls = self.model_config.__class__.__name__
-        assert (
-            model_config_cls in CONFIG_TO_MODEL_CLASS
-        ), f"Unsupported model config {model_config_cls}. Only {CONFIG_TO_MODEL_CLASS.keys()} are supported"
+        assert model_config_cls in CONFIG_TO_MODEL_CLASS, (
+            f"Unsupported model config {model_config_cls}. Only {CONFIG_TO_MODEL_CLASS.keys()} are supported"
+        )
 
         model = self._init_model(
             model_builder=lambda: CONFIG_TO_MODEL_CLASS[model_config_cls](
@@ -1038,9 +1063,7 @@ class DistributedTrainer:
             # Load from a pre existing checkpoint
             if check_path_is_local(self.init_checkpoint_path):
                 # Reload from a training checkpoint
-                log_rank(
-                    f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0
-                )
+                log_rank(f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0)
                 self.param_shard_metadata = load_weights(
                     model=unwrapped_model,
                     parallel_context=self.parallel_context,
@@ -1090,8 +1113,10 @@ class DistributedTrainer:
         parallel_context = self.parallel_context
 
         parallel_config = config.parallelism
-        make_ddp = parallel_context.data_parallel_size > 1 or parallel_context.context_parallel_size > 1 and not (
-            config.optimizer.accumulate_grad_in_fp32 and config.optimizer.zero_stage > 0
+        make_ddp = (
+            parallel_context.data_parallel_size > 1
+            or parallel_context.context_parallel_size > 1
+            and not (config.optimizer.accumulate_grad_in_fp32 and config.optimizer.zero_stage > 0)
         )
 
         # Build model and set pp ranks
@@ -1184,6 +1209,9 @@ class DistributedTrainer:
 
     def pre_save_checkpoint(self) -> Path:
         # Check if eval_interval should be updated from file
+        if not self.config.lighteval:
+            return
+
         eval_interval_file = self.config.lighteval.eval_interval_file if self.config.lighteval is not None else None
         if eval_interval_file is not None and Path(eval_interval_file).exists():
             try:
@@ -1258,7 +1286,7 @@ class DistributedTrainer:
 
         # Update step/samples numbers before we save the config
         self.config.general.step = self.metadata.last_train_step
-        self.config.general.consumed_train_samples = self.metadata.consumed_train_samples # TODO: idc abt this
+        self.config.general.consumed_train_samples = self.metadata.consumed_train_samples  # TODO: idc abt this
 
         save(
             model=self.unwrapped_model,
