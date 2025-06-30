@@ -14,7 +14,13 @@ from transformers import AutoTokenizer
 from yaml.loader import SafeLoader
 
 from nanotron.config.lighteval_config import LightEvalConfig
-from nanotron.config.models_config import ExistingCheckpointInit, NanotronConfigs, RandomInit, SpectralMupInit
+from nanotron.config.models_config import (
+    ExistingCheckpointInit,
+    NanotronConfigs,
+    Qwen2Config,
+    RandomInit,
+    SpectralMupInit,
+)
 from nanotron.config.parallelism_config import ParallelismArgs
 from nanotron.config.utils_config import (
     InitScalingMethod,
@@ -27,7 +33,6 @@ from nanotron.generation.sampler import SamplerType
 from nanotron.logging import get_logger, human_format
 from nanotron.parallel.pipeline_parallel.engine import PipelineEngine
 from nanotron.parallel.tensor_parallel.nn import TensorParallelLinearMode
-from nanotron.config.models_config import Qwen2Config
 
 logger = get_logger(__name__)
 
@@ -440,19 +445,40 @@ class GenerationArgs:
 
 
 @dataclass
+class LanguageMetricsArgs:
+    """Arguments for per-language metrics tracking"""
+
+    compute_interval: int = 100
+    test_datasets: Optional[List[Path]] = None  # assume corpus_name/eng_Latn.txt format etc.
+    bpec_dataset: Optional[Path] = None  # for normalizing BPC -> Bits per Englsh Character corpus
+    generation_samples: int = 1000  # Number of tokens to generate for Zipf/Heaps
+    batch_size: int = 32  # Batch size for evaluation
+
+    def __post_init__(self):
+        if self.bpec_dataset not in self.bpec_dataset:
+            raise ValueError("The English reference has to be available for BPEC and IP.")
+
+
+@dataclass
+class TrainTestLanguagesArgs:
+    train_languages: Optional[List[str]] = None
+    test_languages: Optional[List[str]] = None
+    sampling_method: Optional[str] = None  # TODO(Wessel): make into enum
+
+
+@dataclass
 class Config:
     """Main configuration class"""
 
     general: GeneralArgs
     parallelism: ParallelismArgs
     model: ModelArgs
-    train_languages: Optional[List[str]] = None
-    test_languages: Optional[List[str]] = None
-    sampling_method: Optional[str] = None  # TODO(Wessel): make into enum
     tokenizer: Optional[TokenizerArgs] = None
     checkpoints: Optional[CheckpointsArgs] = None
     logging: Optional[LoggingArgs] = None
     metrics_logging: Optional[MetricsLoggingArgs] = None
+    language_metrics: Optional[LanguageMetricsArgs] = None
+    train_test_languages: Optional[TrainTestLanguagesArgs] = None
     tokens: Optional[TokensArgs] = None
     optimizer: Optional[OptimizerArgs] = None
     data_stages: Optional[List[DatasetStageArgs]] = None

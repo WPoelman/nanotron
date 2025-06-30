@@ -49,6 +49,7 @@ from nanotron.helpers import (
     log_throughput,
     lr_scheduler_builder,
 )
+from nanotron.language_metrics_logger import LanguageMetricsLogger
 from nanotron.logging import (
     LoggerWriter,
     LogItem,
@@ -288,9 +289,7 @@ class DistributedTrainer:
 
         log_libraries_versions(logger=logger)
         log_rank("Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
-        log_rank(
-            f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0
-        )  # noqa
+        log_rank(f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0)  # noqa
         log_rank(pformat(self.config), logger=logger, level=logging.INFO, rank=0)
         log_rank("Model Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
         log_rank(pformat(self.model_config), logger=logger, level=logging.INFO, rank=0)
@@ -300,7 +299,15 @@ class DistributedTrainer:
         self.post_init()
 
         # Initialize metrics logger
-        self.metrics_logging = MetricsLogger(self.config)
+        if self.config.language_metrics:
+            language_metrics_logger = LanguageMetricsLogger(
+                config=self.config.language_metrics,
+                tokenizer=self.config.tokenizer,
+                parallel_context=self.parallel_context,
+            )
+        else:
+            language_metrics_logger = None
+        self.metrics_logging = MetricsLogger(self.config, language_metrics_logger)
 
     def pre_init(self):
         self.init_checkpoint_path = parse_ckpt_path(config=self.config, parallel_context=self.parallel_context)
@@ -885,9 +892,7 @@ class DistributedTrainer:
                 # per head logs
                 for head_idx in range(tensor.shape[0]):
                     basic_log_entries.append(
-                        LogItem(
-                            f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format"
-                        )
+                        LogItem(f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format")
                     )
                     basic_log_entries.append(
                         LogItem(f"tbi_logs/{name}/head_{head_idx}_std", tensor[head_idx].std().item(), "human_format")
@@ -931,7 +936,6 @@ class DistributedTrainer:
             and self.metrics_logging.log_level > 0
             and self.iteration_step % self.metrics_logging.log_detail_interval == 0
         )
-
         if should_log_detailed_metrics_to_wandb:
             assert not (wandb.run is None and tp_size > 1 and dp_cp_rank == 0), (
                 f"WandB is not initialized for TP rank {tp_rank}, but logging was requested. Make sure that wandb is initialize before training."
@@ -941,6 +945,7 @@ class DistributedTrainer:
             # Collect all metrics based on the log level
             detailed_metrics = self.metrics_logging.collect_all_metrics(
                 model=self.unwrapped_model,
+                current_step=self.iteration_step,
             )
 
             # Add all detailed metrics to wandb
@@ -1067,9 +1072,7 @@ class DistributedTrainer:
             # Load from a pre existing checkpoint
             if check_path_is_local(self.init_checkpoint_path):
                 # Reload from a training checkpoint
-                log_rank(
-                    f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0
-                )
+                log_rank(f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0)
                 self.param_shard_metadata = load_weights(
                     model=unwrapped_model,
                     parallel_context=self.parallel_context,

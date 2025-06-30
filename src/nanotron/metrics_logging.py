@@ -6,6 +6,9 @@ from typing import Any, Dict, Optional
 
 import torch
 
+from nanotron.config import Config
+from nanotron.language_metrics_logger import LanguageMetricsLogger
+
 ########################
 # Basic utility functions
 ########################
@@ -121,7 +124,7 @@ class MetricsLogger:
         "model.lm_head.pp_block.weight",
     ]
 
-    def __init__(self, config):
+    def __init__(self, config: Config, language_metrics_logger: Optional[LanguageMetricsLogger] = None):
         """Initialize the logger with configuration."""
         self.config = config
         if self.config.metrics_logging is not None:
@@ -130,6 +133,8 @@ class MetricsLogger:
         else:
             self.log_level = 0
             self.log_detail_interval = 1
+
+        self.language_metrics_logger = language_metrics_logger
 
     def _format_paths(self, components: Dict, max_layers: int) -> Dict:
         """Pre-format component paths with layer indices for efficiency."""
@@ -252,12 +257,18 @@ class MetricsLogger:
     def collect_all_metrics(
         self,
         model: torch.nn.Module,
+        current_step: Optional[int] = None,
     ) -> Dict[str, torch.Tensor]:
         """Collect all metrics based on the specified log level and iteration."""
         metrics = {}
         metrics.update(self.compute_global_hidden_layer_metrics(model))
         metrics.update(self.collect_embeddings_metrics(model))
         metrics.update(self.collect_parameter_metrics(model))
+
+        if self.language_metrics_logger:
+            metrics.update(self.language_metrics_logger.compute_test_set_metrics(model, current_step))
+            metrics.update(self.language_metrics_logger.compute_generative_metrics(model, current_step))
+
         return metrics
 
 
