@@ -33,7 +33,7 @@ class Parametrizator:
 
 
 class StandardParametrizator(Parametrizator):
-    def __init__(self, config: Config):
+    def __init__(self, config: ModelArgs):
         super().__init__(config)
         self.MODULE_TO_PARAMETRIZE = {
             TensorParallelColumnLinear: self._parametrize_column_linear,
@@ -48,11 +48,10 @@ class StandardParametrizator(Parametrizator):
             nn.Linear: self._parametrize_column_linear,
         }
 
-        self.std = config.model.init_method.std
-        self.num_layers = config.model.model_config.num_hidden_layers
-        self.tp = config.parallelism.tp
-        self.scaling_method = config.model.init_method.scaling_method
-        self.hidden_size = config.model.model_config.hidden_size
+        self.std = config.init_method.std
+        self.num_layers = config.model_config.num_hidden_layers
+        self.scaling_method = config.init_method.scaling_method
+        self.hidden_size = config.model_config.hidden_size
 
     def _parametrize_column_linear(self, param_name: str, module: nn.Module):
         assert param_name in ["weight", "bias"]
