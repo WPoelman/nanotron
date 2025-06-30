@@ -41,9 +41,9 @@ class DoReMiTrainer(DistributedTrainer):
     ):
         # NOTE: save the initial domain_weights
         config: DoReMiConfig = get_config_from_file(config_or_config_file, config_class=config_class)
-        assert (
-            config.doremi.ref_model_resume_checkpoint_path is not None
-        ), "You must provide a reference model checkpoint path for DoReMi training."
+        assert config.doremi.ref_model_resume_checkpoint_path is not None, (
+            "You must provide a reference model checkpoint path for DoReMi training."
+        )
 
         self.doremi_context = DoReMiContext(
             config.doremi.domain_names,
@@ -55,9 +55,9 @@ class DoReMiTrainer(DistributedTrainer):
         super().__init__(config_or_config_file, config_class)
 
     def _init_model_instance(self) -> Union[NanotronModel, DistributedDataParallel]:
-        assert (
-            self.ref_checkpoint_path is not None
-        ), "You must provide a reference model checkpoint path for DoReMi's proxy training."
+        assert self.ref_checkpoint_path is not None, (
+            "You must provide a reference model checkpoint path for DoReMi's proxy training."
+        )
         # NOTE: after initializing parallel context, now we can move domain weights to
         # the GPU corresponding to the current rank
         self.doremi_context.domain_weights = self.doremi_context.domain_weights.to("cuda")

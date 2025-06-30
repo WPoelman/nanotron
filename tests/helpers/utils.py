@@ -76,7 +76,7 @@ def is_dict_equal(first: Dict, second: Dict, sub_paths: Optional[List[str]] = No
             if not isinstance(second_elt, dict):
                 return (
                     False,
-                    f"Object types don't match in {'.'.join(sub_paths +  [str(key)])}.\nCur: {first_elt}\nRef: {second_elt}",
+                    f"Object types don't match in {'.'.join(sub_paths + [str(key)])}.\nCur: {first_elt}\nRef: {second_elt}",
                 )
             match, msg = is_dict_equal(first_elt, second_elt, sub_paths=sub_paths + [str(key)])
             if match is False:
@@ -85,7 +85,7 @@ def is_dict_equal(first: Dict, second: Dict, sub_paths: Optional[List[str]] = No
             if not isinstance(second_elt, torch.Tensor):
                 return (
                     False,
-                    f"Object types don't match in {'.'.join(sub_paths +  [str(key)])}.\nCur: {first_elt}\nRef: {second_elt}",
+                    f"Object types don't match in {'.'.join(sub_paths + [str(key)])}.\nCur: {first_elt}\nRef: {second_elt}",
                 )
             try:
                 torch.testing.assert_close(
@@ -211,9 +211,9 @@ def rerun_on_exception(exception_type: Exception = Exception, pattern: str = Non
     def _wrapper(func):
         def _run_until_success(*args, **kwargs):
             try_count = 0
-            assert max_try is None or isinstance(
-                max_try, int
-            ), f"Expected max_try to be None or int, but got {type(max_try)}"
+            assert max_try is None or isinstance(max_try, int), (
+                f"Expected max_try to be None or int, but got {type(max_try)}"
+            )
 
             while max_try is None or try_count < max_try:
                 try:
@@ -223,7 +223,6 @@ def rerun_on_exception(exception_type: Exception = Exception, pattern: str = Non
                 except exception_type as e:
                     error_lines = str(e).split("\n")
                     if try_count < max_try and (pattern is None or _match_lines(error_lines, pattern)):
-
                         print("Exception is caught, retrying...")
                         # when pattern is not specified, we always skip the exception
                         # when pattern is specified, we only skip when pattern is matched

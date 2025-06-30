@@ -311,13 +311,13 @@ def _test_dist_doremi_sampler_not_repeating_samples(
     epoch = 0
     for idxs in sampler:
         # NOTE: check that the indices are not repeated
-        assert not set(idxs).intersection(
-            local_yieled_idxs
-        ), f"set(idxs): {set(idxs)}, local_yieled_idxs: {local_yieled_idxs}"
-        assert not set(idxs).intersection(
-            yielded_idxs
-        ), f"set(idxs): {set(idxs)}, yielded_idxs: {yielded_idxs} \
+        assert not set(idxs).intersection(local_yieled_idxs), (
+            f"set(idxs): {set(idxs)}, local_yieled_idxs: {local_yieled_idxs}"
+        )
+        assert not set(idxs).intersection(yielded_idxs), (
+            f"set(idxs): {set(idxs)}, yielded_idxs: {yielded_idxs} \
         epoch: {epoch}"
+        )
 
         local_yieled_idxs.extend(idxs)
 

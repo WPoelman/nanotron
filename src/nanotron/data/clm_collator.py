@@ -28,7 +28,6 @@ class DataCollatorForCLM:
 
     @torch.profiler.record_function("DataCollatorForCLM.__call__")
     def __call__(self, examples: List[Dict[str, List[np.ndarray]]]) -> Dict[str, Union[torch.Tensor, TensorPointer]]:
-
         vstack = np.vstack if self.use_numpy else torch.vstack
         ones = np.ones if self.use_numpy else torch.ones
         bool_dtype = np.bool_ if self.use_numpy else torch.bool
@@ -58,9 +57,9 @@ class DataCollatorForCLM:
         result["label_ids"] = TensorPointer(group_rank=self.output_pp_rank)
         result["label_mask"] = TensorPointer(group_rank=self.output_pp_rank)
 
-        assert (
-            expanded_input_length == self.sequence_length + 1
-        ), f"Samples should be of length {self.sequence_length + 1} (seq_len+1), but got {expanded_input_length}"
+        assert expanded_input_length == self.sequence_length + 1, (
+            f"Samples should be of length {self.sequence_length + 1} (seq_len+1), but got {expanded_input_length}"
+        )
 
         # Process inputs: last token is the label
         if current_pp_rank == self.input_pp_rank:
@@ -196,7 +195,7 @@ class DataCollatorForCLMWithPositionIds:
         result["label_mask"] = TensorPointer(group_rank=self.output_pp_rank)
 
         assert expanded_input_length == self.sequence_length + 1, (
-            f"Samples should be of length {self.sequence_length + 1} (seq_len+1), " f"but got {expanded_input_length}"
+            f"Samples should be of length {self.sequence_length + 1} (seq_len+1), but got {expanded_input_length}"
         )
 
         # Process inputs

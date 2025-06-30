@@ -108,7 +108,6 @@ def get_llama_training_config(model_config: ModelArgs):
 def create_llama_from_config(
     model_config: LlamaConfig, device: torch.device, parallel_context: ParallelContext
 ) -> LlamaForTraining:
-
     """
     Creates and returns a nanotron model.
     If `model_config` is None, then `checkpoint_path` must be set, in which case

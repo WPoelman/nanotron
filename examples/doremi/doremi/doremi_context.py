@@ -29,12 +29,12 @@ class DoReMiContext:
     def __post_init__(self):
         # NOTE: by default, we do uniform sampling for DoReMi
         self.domain_weights = torch.ones(self.num_domains) / self.num_domains
-        assert torch.allclose(
-            self.domain_weights.sum(dim=-1), torch.tensor(1.0), rtol=0.001
-        ), "Domain weights must sum up to 1."
-        assert (
-            self.domain_weights.shape[0] == self.num_domains
-        ), "The length of domain_weights must be equal to the number of domains"
+        assert torch.allclose(self.domain_weights.sum(dim=-1), torch.tensor(1.0), rtol=0.001), (
+            "Domain weights must sum up to 1."
+        )
+        assert self.domain_weights.shape[0] == self.num_domains, (
+            "The length of domain_weights must be equal to the number of domains"
+        )
         self.add_weight_with_history(self.domain_weights, 0)
 
     def add_weight_with_history(self, domain_weights: torch.Tensor, step: int):

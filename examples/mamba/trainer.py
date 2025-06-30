@@ -130,7 +130,6 @@ class MambaTrainer(DistributedTrainer):
                     root_folder=self.config.model.init_method.path,
                 )
             elif isinstance(self.config.model.init_method, MambaInit):
-
                 unwrapped_model.init_model_randomly(config=self.config)
                 # Synchronize parameters so that the model is consistent
                 # sync all params across dp

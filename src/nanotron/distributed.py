@@ -37,9 +37,9 @@ def reduce_scatter_tensor(  # pylint: disable=function-redefined
     if group is None:
         group = dist.torch_dist.distributed_c10d._get_default_group()
 
-    assert (
-        group.size() > 1
-    ), "You should probably not call `reduce_scatter_tensor` with a single rank, as it copies data over"
+    assert group.size() > 1, (
+        "You should probably not call `reduce_scatter_tensor` with a single rank, as it copies data over"
+    )
 
     if torch_version_above_1_13:
         return dist.reduce_scatter_tensor(output=output, input=input, group=group, op=op, async_op=async_op)
@@ -54,9 +54,9 @@ def all_gather_into_tensor(  # pylint: disable=function-redefined
     if group is None:
         group = dist.torch_dist.distributed_c10d._get_default_group()
 
-    assert (
-        group.size() > 1
-    ), "You should probably not call `all_gather_into_tensor` with a single rank, as it copies data over"
+    assert group.size() > 1, (
+        "You should probably not call `all_gather_into_tensor` with a single rank, as it copies data over"
+    )
 
     if torch_version_above_1_13:
         return dist.all_gather_into_tensor(
@@ -100,9 +100,9 @@ def reduce_scatter_coalesced(
     dtype = output_tensor_list[0].dtype
     group_size = len(input_tensor_lists[0])
 
-    assert (
-        group_size > 1
-    ), "You should probably not call `reduce_scatter_coalesced` with a single rank, as it copies data over"
+    assert group_size > 1, (
+        "You should probably not call `reduce_scatter_coalesced` with a single rank, as it copies data over"
+    )
 
     for output_tensor in output_tensor_list:
         assert device == output_tensor.device
@@ -180,9 +180,9 @@ def all_gather_coalesced(  # pylint: disable=function-redefined
     dtype = input_tensor_list[0].dtype
     group_size = len(output_tensor_lists[0])
 
-    assert (
-        group_size > 1
-    ), "You should probably not call `all_gather_coalesced` with a single rank, as it copies data over"
+    assert group_size > 1, (
+        "You should probably not call `all_gather_coalesced` with a single rank, as it copies data over"
+    )
 
     for input_tensor in input_tensor_list:
         assert device == input_tensor.device

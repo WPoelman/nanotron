@@ -66,9 +66,9 @@ class PipelineBlock(nn.Module):
         :param kwargs: Dict[str, Union[TensorPointer, torch.Tensor, Any]]
         :return: Dict[str, Union[TensorPointer, torch.Tensor, Any]
         """
-        assert self.module_input_keys == set(
-            kwargs.keys()
-        ), f"Expected {self.module_input_keys}, got {set(kwargs.keys())}"
+        assert self.module_input_keys == set(kwargs.keys()), (
+            f"Expected {self.module_input_keys}, got {set(kwargs.keys())}"
+        )
 
         sorted_kwargs = sorted(kwargs.items(), key=get_sort_key(dist.get_rank(self.p2p.pg)))
 
@@ -156,9 +156,9 @@ class PipelineBlock(nn.Module):
             output = {next(iter(self.module_output_keys)): output}
 
         assert isinstance(output, dict), "Modules within a Pipeline Block have to return a Dict[str, torch.Tensor]"
-        assert self.module_output_keys == set(
-            output.keys()
-        ), f"Expected {self.module_output_keys}, got {set(output.keys())}"
+        assert self.module_output_keys == set(output.keys()), (
+            f"Expected {self.module_output_keys}, got {set(output.keys())}"
+        )
 
         return output
 

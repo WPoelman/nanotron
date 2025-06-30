@@ -5,6 +5,7 @@ You can run using command:
 python examples/moe/config_llamoe.py; USE_FAST=1 CUDA_DEVICE_MAX_CONNECTIONS=1 torchrun --nproc_per_node=4 examples/moe/train_moe.py --config-file examples/moe/config_llamoe.yaml
 ```
 """
+
 import argparse
 import os
 import sys

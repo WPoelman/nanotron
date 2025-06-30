@@ -30,7 +30,11 @@ from nanotron.parallel.tensor_parallel.nn import (
 from nanotron.random import RandomStates
 from nanotron.scaling.parametrization import SpectralMupParametrizator, StandardParametrizator
 from nanotron.logging import LogMixin
-from nanotron.nn.llama3_ring_attention import llama3_flash_attn_varlen_kvpacked_func, llama3_flash_attn_prepare_cu_seqlens
+from nanotron.nn.llama3_ring_attention import (
+    llama3_flash_attn_varlen_kvpacked_func,
+    llama3_flash_attn_prepare_cu_seqlens,
+)
+
 logger = logging.get_logger(__name__)
 
 
@@ -132,6 +136,7 @@ class CoreAttention(nn.Module):
             -1, self.local_num_heads * self.head_dim
         )  # [b*s, num_heads, head_dim] -> [b*s, num_heads*head_dim]
 
+
 class Qwen2Attention(LogMixin, nn.Module):
     def __init__(
         self,
@@ -195,6 +200,7 @@ class Qwen2Attention(LogMixin, nn.Module):
         )
         if config._use_qkv_packed:
             from nanotron.nn.rotary import FlashRotaryEmbedding
+
             self.rotary_emb = FlashRotaryEmbedding(
                 dim=self.head_dim,
                 base=config.rope_theta,
@@ -229,7 +235,7 @@ class Qwen2Attention(LogMixin, nn.Module):
         # [0, 1, 2, 3, 4, 5, 6, 7, 8, -1, -1] # 1 document with 10 tokens then padding
         # Replace -1 with 0 in position_ids to mark every padding token as a separate sequence. Ideally we want to get rid of padding tokens from qkv
         # position_ids = position_ids.masked_fill(position_ids == -1, 0)
-        seq_length = position_ids.shape[1] // self.cp_pg_size # in CP, position_ids are global
+        seq_length = position_ids.shape[1] // self.cp_pg_size  # in CP, position_ids are global
         # Keep original position_ids shape for return, flatten for internal use
         position_ids = position_ids.view(-1)  # [batch_size*seq_length]
 
@@ -271,17 +277,14 @@ class Qwen2Attention(LogMixin, nn.Module):
         kv = kv.view(-1, seq_length, 2, self.local_num_kv_heads, self.head_dim)
         if self.config.no_rope_layer is None or (self.layer_idx + 1) % self.config.no_rope_layer != 0:
             seqlen_offset = dist.get_rank(self.cp_pg) * seq_length
-            q, kv = self.rotary_emb(
-                q, kv, seqlen_offset=seqlen_offset, max_seqlen=seq_length*self.cp_pg_size
-            )
+            q, kv = self.rotary_emb(q, kv, seqlen_offset=seqlen_offset, max_seqlen=seq_length * self.cp_pg_size)
         else:
             log_rank(f"skipping rotary for layer {self.layer_idx + 1}", logger=logger, level=logging.DEBUG, rank=0)
-            self.sliding_window_size = None # WARNING: we skip sliding window for no-rope
+            self.sliding_window_size = None  # WARNING: we skip sliding window for no-rope
 
         q = q.view(-1, self.local_num_heads, self.head_dim)
         kv = kv.view(-1, 2, self.local_num_kv_heads, self.head_dim)
         max_seqlen = seq_length  # TODO: should this be max position_ids?
-
 
         if self.config._attn_implementation == "llama3_ring_attention":
             attn_output = llama3_flash_attn_varlen_kvpacked_func(
@@ -773,16 +776,20 @@ class Qwen2Model(nn.Module):
             if self.config._attn_implementation == "llama3_ring_attention":
                 local_sequence_length = input_ids.shape[1]
                 sequence_length = position_ids.shape[1]
-                assert sequence_length == local_sequence_length * self.parallel_context.cp_pg.size(), f"sequence_length={sequence_length} must be equal to local_sequence_length={local_sequence_length} * cp_pg.size()={self.parallel_context.cp_pg.size()}"
-                assert sequence_length % (2 * self.parallel_context.cp_pg.size()) == 0, f"Sequence length {sequence_length} must be divisible by {2 * self.parallel_context.cp_pg.size()} when using llama3 ring attention"
+                assert sequence_length == local_sequence_length * self.parallel_context.cp_pg.size(), (
+                    f"sequence_length={sequence_length} must be equal to local_sequence_length={local_sequence_length} * cp_pg.size()={self.parallel_context.cp_pg.size()}"
+                )
+                assert sequence_length % (2 * self.parallel_context.cp_pg.size()) == 0, (
+                    f"Sequence length {sequence_length} must be divisible by {2 * self.parallel_context.cp_pg.size()} when using llama3 ring attention"
+                )
                 (
-                cu_seqlens_q,
-                cu_seqlens_k,
-                max_seqlen_q,
-                max_seqlen_k,
-                local_k_slice,
+                    cu_seqlens_q,
+                    cu_seqlens_k,
+                    max_seqlen_q,
+                    max_seqlen_k,
+                    local_k_slice,
                 ) = llama3_flash_attn_prepare_cu_seqlens(
-                    cu_seqlens, # global cu_seqlens
+                    cu_seqlens,  # global cu_seqlens
                     causal=True,
                     rank=self.parallel_context.cp_pg.rank(),
                     world_size=self.parallel_context.cp_pg.size(),
@@ -892,7 +899,10 @@ class LossWithZLoss(Loss):
         z_loss = masked_mean(z_loss.detach(), label_mask, dtype=torch.float)
         return {"loss": loss, "z_loss": z_loss}
 
+
 from nanotron.logging import LoggingCollectorMixin
+
+
 class Qwen2ForTraining(NanotronModel, LoggingCollectorMixin):
     def __init__(
         self,
@@ -1002,7 +1012,9 @@ class Qwen2ForTraining(NanotronModel, LoggingCollectorMixin):
             if param.is_tied
             else name
             for name, param in model.named_parameters()
-        }, f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        }, (
+            f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        )
 
     def get_embeddings_lm_head_tied_names(self):
         """Get the names of the tied embeddings and lm_head weights"""

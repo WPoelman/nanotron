@@ -99,9 +99,9 @@ def save(
     try:
         if should_save_lr_scheduler:
             lr_scheduler = cast(LambdaLR, lr_scheduler)
-            assert len(lr_scheduler.lr_lambdas) == len(
-                optimizer.param_groups
-            ), "The number of lambdas functions in the scheduler should be equal to the number of parameter groups in the optimizer."
+            assert len(lr_scheduler.lr_lambdas) == len(optimizer.param_groups), (
+                "The number of lambdas functions in the scheduler should be equal to the number of parameter groups in the optimizer."
+            )
 
             save_lr_scheduler(
                 lr_scheduler=lr_scheduler,

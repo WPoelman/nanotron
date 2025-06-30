@@ -41,7 +41,6 @@ class Nanoset(torch.utils.data.Dataset):
         eos_token_id: int = None,
         return_positions: bool = True,
     ) -> None:
-
         # Checks
         if isinstance(dataset_folders, str):
             warnings.warn("dataset_folders should be of type List[str] but str was provided. Converting to List[str]")
@@ -52,9 +51,9 @@ class Nanoset(torch.utils.data.Dataset):
         self.sequence_length = sequence_length
         self.eos_token_id = eos_token_id
         self.return_positions = return_positions
-        assert (
-            self.return_positions or self.eos_token_id is not None
-        ), "If return_positions is True, eos_token_id must be defined"
+        assert self.return_positions or self.eos_token_id is not None, (
+            "If return_positions is True, eos_token_id must be defined"
+        )
         # Number of bytes for the tokens stored in the processed dataset files. 2 for vocab sizes < 65535, 4 otherwise
         self.token_size = token_size
         self.train_split_num_samples = train_split_num_samples
@@ -86,9 +85,9 @@ class Nanoset(torch.utils.data.Dataset):
             self.dataset_weights = normalize(self.dataset_lengths)
         else:
             self.dataset_weights = normalize(dataset_weights)
-        assert len(dataset_folders) == len(
-            self.dataset_weights
-        ), f"Specified {len(self.dataset_weights)} weights but {len(dataset_folders)} datasets were provided."
+        assert len(dataset_folders) == len(self.dataset_weights), (
+            f"Specified {len(self.dataset_weights)} weights but {len(dataset_folders)} datasets were provided."
+        )
         ## Build dataset index and dataset sample index
         self.dataset_index, self.dataset_sample_index = self.build_nanoset_index()
         # self.dataset_index, self.dataset_sample_index = self.new_build_nanoset_index() # TODO: Fix this
@@ -167,9 +166,9 @@ class Nanoset(torch.utils.data.Dataset):
         for idx, dataset_idx in tqdm(enumerate(dataset_order), desc="Building Nanoset index"):
             dataset_index[idx] = dataset_idx
             dataset_sample_index[idx] = dataset_positions[dataset_idx]
-            dataset_positions[
-                dataset_idx
-            ] += 1  # Read samples sequentially from each datatrove_dataset assuming they're already shuffled
+            dataset_positions[dataset_idx] += (
+                1  # Read samples sequentially from each datatrove_dataset assuming they're already shuffled
+            )
 
         # Save to cache
         try:
@@ -206,7 +205,6 @@ class Nanoset(torch.utils.data.Dataset):
         return dataset_index, dataset_sample_index
 
     def print_nanoset_info(self):
-
         log_rank(f"> Total number of samples: {len(self)}", logger=logger, level=logging.INFO, rank=0)
         log_rank(
             f"> Total number of tokens: {len(self) * self.sequence_length}", logger=logger, level=logging.INFO, rank=0

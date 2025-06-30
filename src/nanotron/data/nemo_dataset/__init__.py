@@ -113,7 +113,9 @@ def build_train_valid_test_datasets(
             data_prefix.get("train") is not None
             and data_prefix.get("test") is not None
             and data_prefix.get("validation") is not None
-        ), f"Data prefix dictionary should have train, test and validation keys.  data_prefix currently has only {data_prefix.keys()}"
+        ), (
+            f"Data prefix dictionary should have train, test and validation keys.  data_prefix currently has only {data_prefix.keys()}"
+        )
         if cfg.splits_string is not None:
             log_rank(
                 cfg.splits_string + " ignored since data prefix is of type dictionary.",
@@ -243,8 +245,9 @@ def _build_train_valid_test_datasets(
     def print_split_stats(name, index):
         log_rank("    {}:".format(name), logger=logger, level=logging.INFO, rank=0)
         log_rank(
-            "     document indices in [{}, {}) total of {} "
-            "documents".format(splits[index], splits[index + 1], splits[index + 1] - splits[index]),
+            "     document indices in [{}, {}) total of {} documents".format(
+                splits[index], splits[index + 1], splits[index + 1] - splits[index]
+            ),
             logger=logger,
             level=logging.INFO,
             rank=0,
@@ -290,7 +293,7 @@ def get_indexed_dataset(data_prefix: str, skip_warmup: bool) -> MMapIndexedDatas
     start_time = time.time()
     indexed_dataset = make_indexed_dataset(data_prefix, skip_warmup)
     log_rank(
-        " > finished creating indexed dataset in {:4f} " "seconds".format(time.time() - start_time),
+        " > finished creating indexed dataset in {:4f} seconds".format(time.time() - start_time),
         logger=logger,
         level=logging.INFO,
         rank=0,
@@ -417,7 +420,7 @@ class GPTDataset(Dataset):
             sample = np.concatenate(sample_list)
         if len(sample) != (self.seq_length + self.add_extra_token):
             log_rank(
-                f" > WARNING: Got sample of length: {len(sample)} for sequence length={self.seq_length+self.add_extra_token}, padding the sample to match sequence length",
+                f" > WARNING: Got sample of length: {len(sample)} for sequence length={self.seq_length + self.add_extra_token}, padding the sample to match sequence length",
                 logger=logger,
                 level=logging.WARNING,
                 rank=0,
@@ -583,7 +586,7 @@ def _build_index_mappings(
             or (not os.path.isfile(shuffle_idx_filename))
         ):
             log_rank(
-                " > WARNING: could not find index map files, building " "the indices on rank 0 ...",
+                " > WARNING: could not find index map files, building the indices on rank 0 ...",
                 logger=logger,
                 level=logging.INFO,
                 rank=0,
@@ -597,7 +600,7 @@ def _build_index_mappings(
             if num_epochs == 1:
                 separate_last_epoch = False
                 log_rank(
-                    " > only one epoch required, setting " "separate_last_epoch to False",
+                    " > only one epoch required, setting separate_last_epoch to False",
                     logger=logger,
                     level=logging.INFO,
                     rank=0,
@@ -614,9 +617,9 @@ def _build_index_mappings(
                 # (num_samples_per_epoch + 1).
                 # TODO: check that this is not problematic indeed
                 #  https://github.com/bigcode-project/Megatron-LM/commit/3a6286ba11181899cccfb11d2e508eca9fd15bea
-                assert last_epoch_num_samples <= (
-                    num_samples_per_epoch + 1
-                ), "last epoch number of samples exceeded max value."
+                assert last_epoch_num_samples <= (num_samples_per_epoch + 1), (
+                    "last epoch number of samples exceeded max value."
+                )
                 # If we have less than 80% of the samples for the last epoch,
                 # separate out the epoch and treat it differently.
                 # Note: the 80% number is just based on common sense and can
@@ -646,8 +649,7 @@ def _build_index_mappings(
             doc_idx = _build_doc_idx(documents, num_epochs, np_rng, separate_last_epoch)
             np.save(doc_idx_filename, doc_idx, allow_pickle=True)
             log_rank(
-                " > elasped time to build and save doc-idx mapping "
-                "(seconds): {:4f}".format(time.time() - start_time),
+                " > elasped time to build and save doc-idx mapping (seconds): {:4f}".format(time.time() - start_time),
                 logger=logger,
                 level=logging.INFO,
                 rank=0,
@@ -680,8 +682,9 @@ def _build_index_mappings(
             #                              num_epochs, tokens_per_epoch, drop_last, add_extra_token)
             np.save(sample_idx_filename, sample_idx, allow_pickle=True)
             log_rank(
-                " > elasped time to build and save sample-idx mapping "
-                "(seconds): {:4f}".format(time.time() - start_time),
+                " > elasped time to build and save sample-idx mapping (seconds): {:4f}".format(
+                    time.time() - start_time
+                ),
                 logger=logger,
                 level=logging.INFO,
                 rank=0,
@@ -698,8 +701,9 @@ def _build_index_mappings(
             shuffle_idx = _build_shuffle_idx(num_samples_, sample_idx.shape[0] - 1, np_rng)
             np.save(shuffle_idx_filename, shuffle_idx, allow_pickle=True)
             log_rank(
-                " > elasped time to build and save shuffle-idx mapping"
-                " (seconds): {:4f}".format(time.time() - start_time),
+                " > elasped time to build and save shuffle-idx mapping (seconds): {:4f}".format(
+                    time.time() - start_time
+                ),
                 logger=logger,
                 level=logging.INFO,
                 rank=0,
@@ -829,9 +833,9 @@ def _build_sample_idx(sizes, doc_idx, seq_length, num_epochs, tokens_per_epoch, 
             else:
                 # Otherwise, start from the beginning of the next document.
                 if doc_idx_index == (len(doc_idx) - 1):
-                    assert (
-                        sample_index == num_samples
-                    ), f"sample_index={sample_index} and num_samples={num_samples} should be the same"
+                    assert sample_index == num_samples, (
+                        f"sample_index={sample_index} and num_samples={num_samples} should be the same"
+                    )
                     doc_offset = sizes[doc_idx[doc_idx_index]] - add_extra_token
                     break
                 doc_idx_index += 1
@@ -847,8 +851,7 @@ def _build_sample_idx(sizes, doc_idx, seq_length, num_epochs, tokens_per_epoch, 
 def _build_shuffle_idx(num_samples: int, total_size: int, np_rng: Any) -> np.ndarray:
     """Build the range [0, size) and shuffle."""
     logger.info(
-        " > building shuffle index with split [0, {}) and [{}, {}) "
-        "...".format(num_samples, num_samples, total_size),
+        " > building shuffle index with split [0, {}) and [{}, {}) ...".format(num_samples, num_samples, total_size),
     )
 
     dtype_ = np.uint32

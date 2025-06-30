@@ -97,7 +97,7 @@ class BlendableDataset(torch.utils.data.Dataset):
         )
 
         log_rank(
-            "> elapsed time for building blendable dataset indices: " "{:.2f} (sec)".format(time.time() - start_time),
+            "> elapsed time for building blendable dataset indices: {:.2f} (sec)".format(time.time() - start_time),
             logger=logger,
             level=logging.INFO,
             rank=0,
@@ -116,25 +116,39 @@ class BlendableDataset(torch.utils.data.Dataset):
         # self.last_item_idx = np.full(self.history_size, -1, dtype=np.int64)
 
         # Initialize consumption tracking
-        self.consumed_tokens = {idx: 0 for idx in range(len(datasets))} # current stage's consumed_tokens_per_dataset_folder
+        self.consumed_tokens = {
+            idx: 0 for idx in range(len(datasets))
+        }  # current stage's consumed_tokens_per_dataset_folder
         if consumed_tokens_per_dataset_folder is not None:
             # find idx of dataset that matches the folder path
             for idx, dataset in enumerate(datasets):
                 for folder_path, consumed_tokens in consumed_tokens_per_dataset_folder.items():
                     if dataset.folder_path == folder_path:
                         self.consumed_tokens[idx] = consumed_tokens
-                        log_rank(f"[BlendableDataset] Setting consumed_tokens for dataset {idx} ({dataset.folder_path}) to {consumed_tokens}", logger=logger, level=logging.INFO, rank=0)
-        
+                        log_rank(
+                            f"[BlendableDataset] Setting consumed_tokens for dataset {idx} ({dataset.folder_path}) to {consumed_tokens}",
+                            logger=logger,
+                            level=logging.INFO,
+                            rank=0,
+                        )
+
         self.sequence_length = None  # Will be set when first batch is processed
 
         # Setup offsets for already consumed tokens from previous stages
-        self.offsets_in_samples = {idx: 0 for idx in range(len(datasets))} # last stage's consumed_tokens_per_dataset_folder
+        self.offsets_in_samples = {
+            idx: 0 for idx in range(len(datasets))
+        }  # last stage's consumed_tokens_per_dataset_folder
         if offsets_in_samples is not None:
             for idx, dataset in enumerate(datasets):
                 for folder_path, offset in offsets_in_samples.items():
                     if dataset.folder_path == folder_path:
                         self.offsets_in_samples[idx] = offset
-                        log_rank(f"[BlendableDataset] Applying offset {offset} samples to dataset {idx} ({dataset.folder_path})", logger=logger, level=logging.INFO, rank=0)
+                        log_rank(
+                            f"[BlendableDataset] Applying offset {offset} samples to dataset {idx} ({dataset.folder_path})",
+                            logger=logger,
+                            level=logging.INFO,
+                            rank=0,
+                        )
 
     def __len__(self):
         return self.size
@@ -143,7 +157,9 @@ class BlendableDataset(torch.utils.data.Dataset):
         dataset_idx = self.dataset_index[idx]
         sample_idx = self.dataset_sample_index[idx]
 
-        return self.datasets[dataset_idx][sample_idx + self.offsets_in_samples[dataset_idx]] # TODO: is it okay to not respect dataset_sample_index? Since it's sequential it's okay for now
+        return self.datasets[dataset_idx][
+            sample_idx + self.offsets_in_samples[dataset_idx]
+        ]  # TODO: is it okay to not respect dataset_sample_index? Since it's sequential it's okay for now
 
     # @property
     # def last_file_idx(self):
@@ -184,9 +200,9 @@ class BlendableDataset(torch.utils.data.Dataset):
         """
         stats = {}
         for dataset_idx, dataset in enumerate(self.datasets):
-            assert (
-                "s3" in dataset.folder_path
-            ), "Only S3 paths are supported for consumption stats"  # TODO: remove this
+            assert "s3" in dataset.folder_path, (
+                "Only S3 paths are supported for consumption stats"
+            )  # TODO: remove this
             stats[dataset.folder_path] = {"tokens": self.consumed_tokens[dataset_idx]}
         return stats
 
@@ -230,9 +246,9 @@ class MemoryEfficientBlendableDataset(torch.utils.data.Dataset):
 
         self.ds_index = np.array(ds_index, dtype=np.uint32)
         self.ds_index_size = np.array([(self.ds_index == i).sum() for i in range(num_datasets)], dtype=np.uint32)
-        assert (
-            self.ds_index_size > 0
-        ).all(), f"Some datasets have no samples in the blendable dataset, increase weight_bins or the offending weight. ds_index_size = {self.ds_index_size}"
+        assert (self.ds_index_size > 0).all(), (
+            f"Some datasets have no samples in the blendable dataset, increase weight_bins or the offending weight. ds_index_size = {self.ds_index_size}"
+        )
         self.ds_bias = np.array(ds_bias, dtype=np.uint32)
 
         self.ds_size = np.array([len(ds) for ds in datasets], dtype=np.uint32)

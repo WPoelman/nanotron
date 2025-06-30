@@ -1,4 +1,5 @@
 """Ring attention implementation adapted from https://github.com/lucidrains/ring-attention-pytorch/blob/main/ring_attention_pytorch/ring_flash_attention_cuda.py"""
+
 from __future__ import annotations
 
 import math
@@ -50,7 +51,6 @@ class RingFlashAttentionCUDAFunction(Function):
         softclamp_value: float,
         ring_pg: dist.ProcessGroup | None,
     ):
-
         assert k.shape[-2:] == v.shape[-2:]
         q_heads, kv_heads = q.shape[-2], k.shape[-2]
 
@@ -77,9 +77,9 @@ class RingFlashAttentionCUDAFunction(Function):
         ring_reduce_col &= not cross_attn
         striped_ring_attn &= not cross_attn
 
-        assert (
-            k.shape[-1] == v.shape[-1]
-        ), "for simplicity when doing ring passing, assume dim_values is equal to dim_queries_keys, majority of transformer do this, not a big issue"
+        assert k.shape[-1] == v.shape[-1], (
+            "for simplicity when doing ring passing, assume dim_values is equal to dim_queries_keys, majority of transformer do this, not a big issue"
+        )
 
         per_machine_seq_size = k.shape[-3]
 
@@ -215,7 +215,6 @@ class RingFlashAttentionCUDAFunction(Function):
     @staticmethod
     @torch.no_grad()
     def backward(ctx, do):
-
         (
             causal,
             softmax_scale,
@@ -278,7 +277,6 @@ class RingFlashAttentionCUDAFunction(Function):
             ring_size=ring_size,
             ring_pg=ring_pg,
         ):
-
             k, v, dk, dv = kv_and_dkv
 
             # account for grouped query attention
@@ -730,9 +728,9 @@ except:
     print(f"latest triton must be installed. `{INSTALL_COMMAND}` first")
     exit()
 
-assert pkg_version.parse(triton_version) >= pkg_version.parse(
-    "3.0.0"
-), f"triton must be version 3.0.0 or above. `{INSTALL_COMMAND}` to upgrade"
+assert pkg_version.parse(triton_version) >= pkg_version.parse("3.0.0"), (
+    f"triton must be version 3.0.0 or above. `{INSTALL_COMMAND}` to upgrade"
+)
 
 import triton
 import triton.language as tl
@@ -1733,7 +1731,7 @@ def flash_attn_backward(
         elif bias.shape[2:] == (seqlen_q, seqlen_k):
             bias_type = "matrix"
         else:
-            raise RuntimeError("Last 2 dimensions of bias must be (1, seqlen_k)" " or (seqlen_q, seqlen_k)")
+            raise RuntimeError("Last 2 dimensions of bias must be (1, seqlen_k) or (seqlen_q, seqlen_k)")
         bias = bias.expand(batch, nheads, seqlen_q, seqlen_k)
     bias_strides = (bias.stride(0), bias.stride(1), bias.stride(2)) if has_bias else (0, 0, 0)
 

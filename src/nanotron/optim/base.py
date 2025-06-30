@@ -30,20 +30,16 @@ class BaseOptimizer(ABC):
     param_groups: List[Dict[str, Any]]
 
     @abstractmethod
-    def __getstate__(self):
-        ...
+    def __getstate__(self): ...
 
     @abstractmethod
-    def __setstate__(self, state):
-        ...
+    def __setstate__(self, state): ...
 
     @abstractmethod
-    def __repr__(self):
-        ...
+    def __repr__(self): ...
 
     @abstractmethod
-    def zero_grad(self):
-        ...
+    def zero_grad(self): ...
 
     @abstractmethod
     def state_dict_additional_keys(self) -> Set[str]:
@@ -51,19 +47,15 @@ class BaseOptimizer(ABC):
         ...
 
     @abstractmethod
-    def state_dict(self) -> dict:
-        ...
+    def state_dict(self) -> dict: ...
 
     @abstractmethod
-    def load_state_dict(self, state_dict: dict, map_location: Optional[Union[str, torch.device]] = None) -> None:
-        ...
+    def load_state_dict(self, state_dict: dict, map_location: Optional[Union[str, torch.device]] = None) -> None: ...
 
     @abstractmethod
-    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
-        ...
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]: ...
 
-    def inherit_from(self, cls) -> bool:
-        ...
+    def inherit_from(self, cls) -> bool: ...
 
 
 Optimizer = TypeVar("Optimizer", BaseOptimizer, torch.optim.Optimizer)
@@ -131,12 +123,12 @@ def custom_load_state_dict(self, state_dict: StateDict, map_location: Union[str,
     saved_groups = deepcopy(state_dict["param_groups"])
 
     if len(groups) != len(saved_groups):
-        raise ValueError("loaded state dict has a different number of " "parameter groups")
+        raise ValueError("loaded state dict has a different number of parameter groups")
     param_lens = (len(g["params"]) for g in groups)
     saved_lens = (len(g["params"]) for g in saved_groups)
     if any(p_len != s_len for p_len, s_len in zip(param_lens, saved_lens)):
         raise ValueError(
-            "loaded state dict contains a parameter group " "that doesn't match the size of optimizer's group"
+            "loaded state dict contains a parameter group that doesn't match the size of optimizer's group"
         )
 
     # Update the state

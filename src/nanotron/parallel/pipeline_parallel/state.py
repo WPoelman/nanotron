@@ -54,36 +54,28 @@ class PipelineBatchState(ABC):
     activations_buffer = collections.deque()
 
     @abstractmethod
-    def register_activation_requiring_backward(self, activation: torch.Tensor):
-        ...
+    def register_activation_requiring_backward(self, activation: torch.Tensor): ...
 
     @abstractmethod
-    def register_send_activation(self, activation: torch.Tensor, to_rank: int, p2p: P2P):
-        ...
+    def register_send_activation(self, activation: torch.Tensor, to_rank: int, p2p: P2P): ...
 
     @abstractmethod
-    def register_recv_activation(self, from_rank: int, p2p: P2P):
-        ...
+    def register_recv_activation(self, from_rank: int, p2p: P2P): ...
 
     @abstractmethod
-    def register_send_grad(self, grad: torch.Tensor, to_rank: int, p2p: P2P):
-        ...
+    def register_send_grad(self, grad: torch.Tensor, to_rank: int, p2p: P2P): ...
 
     @abstractmethod
-    def register_recv_grad(self, from_rank: int, p2p: P2P):
-        ...
+    def register_recv_grad(self, from_rank: int, p2p: P2P): ...
 
     @abstractmethod
-    def run_communication(self, send_only_activation: bool = False):
-        ...
+    def run_communication(self, send_only_activation: bool = False): ...
 
     @abstractmethod
-    def new_micro_batch_forward(self):
-        ...
+    def new_micro_batch_forward(self): ...
 
     @abstractmethod
-    def pop_last_activations_requiring_backward(self) -> List[torch.Tensor]:
-        ...
+    def pop_last_activations_requiring_backward(self) -> List[torch.Tensor]: ...
 
 
 @dataclasses.dataclass
@@ -180,21 +172,21 @@ class PipelineTrainBatchState(PipelineBatchState):
         return self.microbatches_activations_requiring_backward.popleft()
 
     def check_buffers_empty(self):
-        assert (
-            len(self.microbatches_activations_requiring_backward) == 0
-        ), f"There are still activations that require backward: {len(self.microbatches_activations_requiring_backward)}"
-        assert (
-            len(self.microbatches_activations_to_send) == 0
-        ), f"There are activations left for me to send still: {len(self.microbatches_activations_to_send)}"
-        assert (
-            len(self.microbatches_activations_to_recv) == 0
-        ), f"There are activations left for me to recv still: {len(self.microbatches_activations_to_recv)}"
-        assert (
-            len(self.microbatches_grads_to_send) == 0
-        ), f"There are gradients left for me to send still: {len(self.microbatches_grads_to_send)}"
-        assert (
-            len(self.microbatches_grads_to_recv) == 0
-        ), f"There are gradients left for me to recv still: {len(self.microbatches_grads_to_recv)}"
+        assert len(self.microbatches_activations_requiring_backward) == 0, (
+            f"There are still activations that require backward: {len(self.microbatches_activations_requiring_backward)}"
+        )
+        assert len(self.microbatches_activations_to_send) == 0, (
+            f"There are activations left for me to send still: {len(self.microbatches_activations_to_send)}"
+        )
+        assert len(self.microbatches_activations_to_recv) == 0, (
+            f"There are activations left for me to recv still: {len(self.microbatches_activations_to_recv)}"
+        )
+        assert len(self.microbatches_grads_to_send) == 0, (
+            f"There are gradients left for me to send still: {len(self.microbatches_grads_to_send)}"
+        )
+        assert len(self.microbatches_grads_to_recv) == 0, (
+            f"There are gradients left for me to recv still: {len(self.microbatches_grads_to_recv)}"
+        )
 
 
 @dataclasses.dataclass
@@ -277,12 +269,12 @@ class PipelineEvalBatchState(PipelineBatchState):
                     send_activation()
 
     def check_buffers_empty(self):
-        assert (
-            len(self.microbatches_activations_to_send) == 0
-        ), f"There are activations left for me to send still: {len(self.microbatches_activations_to_send)}"
-        assert (
-            len(self.microbatches_activations_to_recv) == 0
-        ), f"There are activations left for me to recv still: {len(self.microbatches_activations_to_recv)}"
-        assert (
-            len(self.activations_buffer) == 0
-        ), f"There are activations left in the buffer: {len(self.activations_buffer)}"
+        assert len(self.microbatches_activations_to_send) == 0, (
+            f"There are activations left for me to send still: {len(self.microbatches_activations_to_send)}"
+        )
+        assert len(self.microbatches_activations_to_recv) == 0, (
+            f"There are activations left for me to recv still: {len(self.microbatches_activations_to_recv)}"
+        )
+        assert len(self.activations_buffer) == 0, (
+            f"There are activations left in the buffer: {len(self.activations_buffer)}"
+        )

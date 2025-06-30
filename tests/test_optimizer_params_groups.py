@@ -263,7 +263,6 @@ def test_optimizer_grad_accumulation_lr_one_group(half_precision: torch.dtype, a
         accumulator.backward(loss)
 
         if (batch_idx + 1) % accumulation_steps == 0:
-
             # Manual update weights for ref
             with torch.no_grad():
                 fc1_grad = accumulator.get_grad_buffer(name="fc1.weight").to(dtype)
@@ -328,7 +327,6 @@ def test_optimizer_grad_accumulation_lr_multiple_group(half_precision: torch.dty
         accumulator.backward(loss)
 
         if (batch_idx + 1) % accumulation_steps == 0:
-
             # Manual update weights for ref
             with torch.no_grad():
                 fc1_grad = accumulator.get_grad_buffer(name="fc1.weight").to(dtype)
@@ -395,7 +393,6 @@ def test_optimizer_grad_accumulation_lr_weight_decay_one_group(half_precision: t
         accumulator.backward(loss)
 
         if (batch_idx + 1) % accumulation_steps == 0:
-
             # Manual update weights for ref
             with torch.no_grad():
                 fc1_grad = accumulator.get_grad_buffer(name="fc1.weight").to(dtype)
@@ -441,6 +438,7 @@ def test_optimizer_grad_accumulation_lr_weight_decay_multiple_group(
             "weight_decay": weight_decay2,
         },
     ]
+
     # Optimizer
     def optimizer_builder(inp_param_groups):
         return NamedOptimizer(
@@ -471,7 +469,6 @@ def test_optimizer_grad_accumulation_lr_weight_decay_multiple_group(
         accumulator.backward(loss)
 
         if (batch_idx + 1) % accumulation_steps == 0:
-
             # Manual update weights for ref
             with torch.no_grad():
                 fc1_grad = accumulator.get_grad_buffer(name="fc1.weight").to(dtype)
@@ -533,6 +530,7 @@ def _test_ddp_optimizer_grad_accumulation_lr_weight_decay_multiple_group(
             "weight_decay": weight_decay2,
         },
     ]
+
     # Optimizer
     def optimizer_builder(inp_param_groups):
         return NamedOptimizer(
@@ -563,7 +561,6 @@ def _test_ddp_optimizer_grad_accumulation_lr_weight_decay_multiple_group(
         accumulator.backward(loss)
 
         if (batch_idx + 1) % accumulation_steps == 0:
-
             # Manual update weights for ref
             with torch.no_grad():
                 fc1_grad = accumulator.get_grad_buffer(name="module.fc1.weight").to(dtype)

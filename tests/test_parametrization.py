@@ -72,6 +72,6 @@ def _test_parametrization(
 
         expected_std = find_expected_std(name)
         assert expected_std is not None, f"Could not find expected std for {name}"
-        assert torch.allclose(
-            param.std().float(), expected_std, atol=0.05
-        ), f"name: {name}, expected: {expected_std}, actual: {param.std()}"
+        assert torch.allclose(param.std().float(), expected_std, atol=0.05), (
+            f"name: {name}, expected: {expected_std}, actual: {param.std()}"
+        )

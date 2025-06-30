@@ -137,7 +137,7 @@ class TokenizedBytesFileDataset(Dataset):
         index += self.skip_tokens
         for chunk in _stream_file(self.file_path, chunk_size, index):
             assert len(chunk) == self.dtype_size * (self.seq_len + 1), (
-                f"Expected {chunk_size} bytes from file but got " f"{len(chunk)}"
+                f"Expected {chunk_size} bytes from file but got {len(chunk)}"
             )
             # careful with type conversions here
             yield torch.as_tensor(np.frombuffer(chunk, self.dtype).astype(np.int64), dtype=torch.int64)
@@ -506,7 +506,7 @@ def build_dataset(
         seq_len=seq_length,
         recursive=False,
         token_size=token_size,
-        max_tokens=max_tokens, # TODO: remove
+        max_tokens=max_tokens,  # TODO: remove
         shuffle=shuffle,
         return_positions=return_positions,  # if set to True, the position ids are directly read from datatrove
         eos_token_id=eos_token_id,
@@ -545,7 +545,9 @@ def get_tb_datasets(
     if dataset_max_tokens is None:
         dataset_max_tokens = [None] * len(config.dataset_folder)
     train_num_samples = train_steps * global_batch_size
-    last_stages_consumed_samples_per_dataset_folder = {k: v // sequence_length for k, v in last_stages_consumed_tokens_per_dataset_folder.items()}
+    last_stages_consumed_samples_per_dataset_folder = {
+        k: v // sequence_length for k, v in last_stages_consumed_tokens_per_dataset_folder.items()
+    }
 
     datasets = [
         build_dataset(
@@ -567,8 +569,7 @@ def get_tb_datasets(
 
     # in case of dataset_read_path check we have enough files locally for the training
     if config.dataset_read_path:
-
-        weights = config.dataset_weights    
+        weights = config.dataset_weights
         if not weights:
             weights = [1] * len(datasets)
 
@@ -581,32 +582,67 @@ def get_tb_datasets(
         # check we have enough files locally for the training
         for i, dataset in enumerate(datasets):
             # warmup datasets
-            estimate_current_sample = int(consumed_samples * weights[i]) + last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)
+            estimate_current_sample = int(
+                consumed_samples * weights[i]
+            ) + last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)
             _ = dataset[estimate_current_sample]
             # print which file we're currently reading from
-            log_rank(f"Dataset {i} ({dataset.folder_path}) is reading from file {dataset.current_file_path}", logger=logger, level=logging.INFO, rank=0)
+            log_rank(
+                f"Dataset {i} ({dataset.folder_path}) is reading from file {dataset.current_file_path}",
+                logger=logger,
+                level=logging.INFO,
+                rank=0,
+            )
             # estimate number of tokens needed for this dataset
             needed_num_samples_dataset = int((train_steps - current_iteration) * global_batch_size * weights[i])
             needed_num_tokens_dataset = needed_num_samples_dataset * sequence_length
             needed_size_tokens_dataset = human_format(needed_num_tokens_dataset * config.token_size_in_bytes)
-            log_rank(f"Dataset {i} ({dataset.folder_path}) needs {needed_num_tokens_dataset} tokens (size: {needed_size_tokens_dataset}) for current stage", logger=logger, level=logging.INFO, rank=0)
+            log_rank(
+                f"Dataset {i} ({dataset.folder_path}) needs {needed_num_tokens_dataset} tokens (size: {needed_size_tokens_dataset}) for current stage",
+                logger=logger,
+                level=logging.INFO,
+                rank=0,
+            )
 
             # NOTE: let's assume that s3 folder keep the same old files when resuming
             # check that sum of lens of files in dataset is greater than needed_num_samples_dataset (use dataset.lens)
             total_num_samples_dataset = int(train_steps * global_batch_size * weights[i])
-            log_rank(f"Dataset {i} ({dataset.folder_path}) on s3 has {len(dataset) * sequence_length} tokens (size: {human_format(len(dataset) * sequence_length * config.token_size_in_bytes)}) and needs {total_num_samples_dataset * sequence_length} tokens (size: {human_format(total_num_samples_dataset * sequence_length * config.token_size_in_bytes)}) for all stages", logger=logger, level=logging.INFO, rank=0)
-            assert total_num_samples_dataset <= len(dataset), f"Not enough files on s3 for dataset {i} ({dataset.folder_path})"
+            log_rank(
+                f"Dataset {i} ({dataset.folder_path}) on s3 has {len(dataset) * sequence_length} tokens (size: {human_format(len(dataset) * sequence_length * config.token_size_in_bytes)}) and needs {total_num_samples_dataset * sequence_length} tokens (size: {human_format(total_num_samples_dataset * sequence_length * config.token_size_in_bytes)}) for all stages",
+                logger=logger,
+                level=logging.INFO,
+                rank=0,
+            )
+            assert total_num_samples_dataset <= len(dataset), (
+                f"Not enough files on s3 for dataset {i} ({dataset.folder_path})"
+            )
             # check that local files exist for the needed_num_samples_dataset
             estimate_end_sample = estimate_current_sample + needed_num_samples_dataset
             for file_idx, file in enumerate(dataset.files):
                 # intersection [start_sample, end_sample] with [dataset.lens[file_idx], dataset.lens[file_idx+1]]
-                a, b, c, d = estimate_current_sample, estimate_end_sample, dataset.lens[file_idx], dataset.lens[file_idx+1]
-                if max(a, c) < min(b, d): # ranges overlap
-                    assert os.path.exists(file.file_path), f"Dataset {i} ({dataset.folder_path}) will need file {file.file_path} but it does not exist"
-                    log_rank(f"Dataset {i} ({dataset.folder_path}) will need file {file.file_path} from sample {max(a, c)} to {min(b, d)} (offset: {last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)})", logger=logger, level=logging.INFO, rank=0)
+                a, b, c, d = (
+                    estimate_current_sample,
+                    estimate_end_sample,
+                    dataset.lens[file_idx],
+                    dataset.lens[file_idx + 1],
+                )
+                if max(a, c) < min(b, d):  # ranges overlap
+                    assert os.path.exists(file.file_path), (
+                        f"Dataset {i} ({dataset.folder_path}) will need file {file.file_path} but it does not exist"
+                    )
+                    log_rank(
+                        f"Dataset {i} ({dataset.folder_path}) will need file {file.file_path} from sample {max(a, c)} to {min(b, d)} (offset: {last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)})",
+                        logger=logger,
+                        level=logging.INFO,
+                        rank=0,
+                    )
                 else:
-                    log_rank(f"Dataset {i} ({dataset.folder_path}) will not need file {file.file_path} to train from sample {estimate_current_sample} to {estimate_end_sample} (offset: {last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)})", logger=logger, level=logging.INFO, rank=0)
-                    
+                    log_rank(
+                        f"Dataset {i} ({dataset.folder_path}) will not need file {file.file_path} to train from sample {estimate_current_sample} to {estimate_end_sample} (offset: {last_stages_consumed_samples_per_dataset_folder.get(dataset.folder_path, 0)})",
+                        logger=logger,
+                        level=logging.INFO,
+                        rank=0,
+                    )
 
     if len(datasets) == 1 and False:
         outputs_dataset = datasets[0]
@@ -674,7 +710,10 @@ def get_tb_dataloader(
         dataset = EmptyInfiniteDataset(length=len(dataset))
 
     log_rank(
-        f"Building dataloader with consumed samples for current datastage: {consumed_samples}", logger=logger, level=logging.INFO, rank=0
+        f"Building dataloader with consumed samples for current datastage: {consumed_samples}",
+        logger=logger,
+        level=logging.INFO,
+        rank=0,
     )
     # Megatron sampler
     # batch_sampler = MegatronPretrainingRandomSampler(

@@ -1,6 +1,7 @@
 """
 torchrun --nproc-per-node 1 convert.py --nanotron-checkpoint-path nanotron_checkpoints/Qwen1.5-MoE-A2.7B --pretrained-model-name-or-path Qwen/Qwen1.5-MoE-A2.7B
 """
+
 import argparse
 import json
 from dataclasses import asdict

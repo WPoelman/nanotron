@@ -169,9 +169,9 @@ def lr_scheduler_builder(optimizer: Optimizer, lr_scheduler_args: LRSchedulerArg
     for param_group in optimizer.get_base_optimizer().param_groups:
         lr_lambdas.append(get_lr_lambda_for_param_group(lr=param_group["lr"]))
 
-    assert len(lr_lambdas) == len(
-        optimizer.get_base_optimizer().param_groups
-    ), "Custom learning rate functions dont match the number of param groups"
+    assert len(lr_lambdas) == len(optimizer.get_base_optimizer().param_groups), (
+        "Custom learning rate functions dont match the number of param groups"
+    )
 
     log_rank(
         f"[Optimizer Building] There are total {len(lr_lambdas)} custom learning rate function for parameter groups",
@@ -292,10 +292,9 @@ def merge_named_param_groups(
     named_param_groups_with_lr: List[Dict[str, Any]],
     named_param_groups_with_weight_decay: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-
-    assert len(named_param_groups_with_lr) == len(
-        named_param_groups_with_weight_decay
-    ), "Named param groups don't match in length"
+    assert len(named_param_groups_with_lr) == len(named_param_groups_with_weight_decay), (
+        "Named param groups don't match in length"
+    )
 
     named_param_groups = []
     for group_with_lr, group_with_weight_decay in zip(
@@ -311,6 +310,7 @@ def merge_named_param_groups(
         )
 
     return named_param_groups
+
 
 def init_optimizer_and_grad_accumulator(
     parametrization_method: ParametrizationMethod,
@@ -451,7 +451,7 @@ def init_optimizer_and_grad_accumulator(
                     id(param): param.get_tied_info().get_full_name_from_module_id_to_prefix(
                         module_id_to_prefix=module_id_to_prefix
                     )
-                    if param.is_tied # a tied param exists only once physically in memory
+                    if param.is_tied  # a tied param exists only once physically in memory
                     else name
                     for name, param in unwrapped_model.named_parameters()
                 },
@@ -490,9 +490,9 @@ def test_equal_dict(first: Dict, second: Dict, sub_paths: Optional[List[str]] = 
                 msg=lambda msg: f"tensor at {'.'.join(sub_paths + [str(key)])} don't match.\nCur: {first_elt}\nRef: {second_elt}\n{msg}",
             )
         else:
-            assert (
-                first_elt == second_elt
-            ), f"{first_elt} doesn't match {second_elt} at key {'.'.join(sub_paths + [str(key)])}"
+            assert first_elt == second_elt, (
+                f"{first_elt} doesn't match {second_elt} at key {'.'.join(sub_paths + [str(key)])}"
+            )
 
 
 def get_profiler(config: Config):
@@ -604,7 +604,7 @@ def test_all_pair_to_pair(
             torch.cuda.empty_cache()
             tput = (float(throughput_size) / duration) * 8  # *8 for gigabits/second
             log_rank(
-                f"[TEST] {j, i, wr} Results throughput from {a} to {b}: {tput/1e9:.4f} Gbps",
+                f"[TEST] {j, i, wr} Results throughput from {a} to {b}: {tput / 1e9:.4f} Gbps",
                 logger=logger,
                 level=logging.WARNING,
                 group=parallel_context.world_pg,
@@ -832,9 +832,9 @@ def get_consumed_train_samples_of_a_data_stage_from_ckp(
     )
     if actual_stage is None:
         # If stage not found in metadata, ensure we haven't passed this stage's start step
-        assert (
-            metadata.last_train_step < stage.start_training_step
-        ), f"Stage {stage.name} starting at step {stage.start_training_step} not found in checkpoint metadata, but last_train_step ({metadata.last_train_step}) >= start_training_step"
+        assert metadata.last_train_step < stage.start_training_step, (
+            f"Stage {stage.name} starting at step {stage.start_training_step} not found in checkpoint metadata, but last_train_step ({metadata.last_train_step}) >= start_training_step"
+        )
         consumed_train_samples = 0
 
         # Add new stage to metadata

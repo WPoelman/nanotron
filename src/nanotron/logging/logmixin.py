@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from typing import Dict, List, Any
 
+
 class LogMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -41,6 +42,7 @@ class LoggingCollectorMixin:
     that use LogMixin.
     The class this is mixed into must be an nn.Module or its subclass.
     """
+
     # No __init__ is strictly necessary here if the mixin itself doesn't have
     # its own state to initialize. The methods operate on `self` which will be
     # an instance of the class it's mixed into (e.g., Qwen2ForTraining).
@@ -49,7 +51,7 @@ class LoggingCollectorMixin:
     def get_tbi_logs(self, non_blocking: bool = False) -> Dict[str, List[Dict[str, torch.Tensor]]]:
         """
         Collects all TBI logs from modules that use LogMixin.
-        Returns a dictionary where keys are fully qualified module names and 
+        Returns a dictionary where keys are fully qualified module names and
         values are lists of log entries (each entry being a dictionary of tensors).
         Tensors remain on their original CUDA devices.
         Assumes `self` is an nn.Module instance with `named_modules()` method.
@@ -57,7 +59,7 @@ class LoggingCollectorMixin:
         all_logs: Dict[str, List[Dict[str, torch.Tensor]]] = {}
         # `self` refers to the instance of the class LoggingCollectorMixin is mixed into.
         # This class is expected to be an nn.Module or subclass.
-        for name, module in self.named_modules(): 
+        for name, module in self.named_modules():
             if isinstance(module, LogMixin):
                 module_logs = module._get_internal_logs()
                 if module_logs:  # Only add if there are logs for this module
@@ -74,7 +76,7 @@ class LoggingCollectorMixin:
         Assumes `self` is an nn.Module instance with `modules()` method.
         """
         # `self` refers to the instance of the class LoggingCollectorMixin is mixed into.
-        for module in self.modules(): 
+        for module in self.modules():
             if isinstance(module, LogMixin):
                 try:
                     module._clear_internal_logs()

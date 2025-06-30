@@ -25,7 +25,9 @@ class ParallelContext:
 
         assert (
             tensor_parallel_size * pipeline_parallel_size * context_parallel_size * data_parallel_size
-        ) == world_size, f"TP*CP*DP*PP={tensor_parallel_size}*{pipeline_parallel_size}*{context_parallel_size}*{data_parallel_size}={tensor_parallel_size * pipeline_parallel_size * context_parallel_size * data_parallel_size} != WORLD_SIZE={world_size}"
+        ) == world_size, (
+            f"TP*CP*DP*PP={tensor_parallel_size}*{pipeline_parallel_size}*{context_parallel_size}*{data_parallel_size}={tensor_parallel_size * pipeline_parallel_size * context_parallel_size * data_parallel_size} != WORLD_SIZE={world_size}"
+        )
 
         if not dist.is_available():
             raise ValueError("torch.distributed is not available as a package, please install it.")

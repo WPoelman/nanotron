@@ -1,4 +1,5 @@
-""" Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information."""
+"""Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information."""
+
 import os
 from dataclasses import dataclass
 from typing import Optional
@@ -61,9 +62,9 @@ class LlaMoEConfig:
         if self.num_key_value_heads is None:
             self.num_key_value_heads = self.num_attention_heads
 
-        assert (
-            self.num_experts_per_tok <= self.moe_num_experts
-        ), f"num_experts_per_tok ({self.num_experts_per_tok}) must be <= moe_num_experts ({self.moe_num_experts})"
+        assert self.num_experts_per_tok <= self.moe_num_experts, (
+            f"num_experts_per_tok ({self.num_experts_per_tok}) must be <= moe_num_experts ({self.moe_num_experts})"
+        )
 
 
 model_config = LlaMoEConfig(
@@ -119,9 +120,9 @@ parallelism = ParallelismArgs(
     tp_linear_async_communication=False,
 )
 
-assert (
-    model_config.moe_num_experts % parallelism.expert_parallel_size == 0
-), "Number of experts must be divisible by expert_parallel_size"
+assert model_config.moe_num_experts % parallelism.expert_parallel_size == 0, (
+    "Number of experts must be divisible by expert_parallel_size"
+)
 
 tokens = TokensArgs(sequence_length=256, train_steps=1918, micro_batch_size=256, batch_accumulation_per_replica=2)
 

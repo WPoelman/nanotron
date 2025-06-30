@@ -288,7 +288,9 @@ class DistributedTrainer:
 
         log_libraries_versions(logger=logger)
         log_rank("Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
-        log_rank(f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0)  # noqa
+        log_rank(
+            f"Parsing config: {os.path.abspath(config_or_config_file)}", logger=logger, level=logging.INFO, rank=0
+        )  # noqa
         log_rank(pformat(self.config), logger=logger, level=logging.INFO, rank=0)
         log_rank("Model Config:", logger=logger, level=logging.INFO, rank=0, is_separator=True)
         log_rank(pformat(self.model_config), logger=logger, level=logging.INFO, rank=0)
@@ -883,7 +885,9 @@ class DistributedTrainer:
                 # per head logs
                 for head_idx in range(tensor.shape[0]):
                     basic_log_entries.append(
-                        LogItem(f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format")
+                        LogItem(
+                            f"tbi_logs/{name}/head_{head_idx}_mean", tensor[head_idx].mean().item(), "human_format"
+                        )
                     )
                     basic_log_entries.append(
                         LogItem(f"tbi_logs/{name}/head_{head_idx}_std", tensor[head_idx].std().item(), "human_format")
@@ -1063,7 +1067,9 @@ class DistributedTrainer:
             # Load from a pre existing checkpoint
             if check_path_is_local(self.init_checkpoint_path):
                 # Reload from a training checkpoint
-                log_rank(f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0)
+                log_rank(
+                    f"Loading weights from {self.init_checkpoint_path}", logger=logger, level=logging.INFO, rank=0
+                )
                 self.param_shard_metadata = load_weights(
                     model=unwrapped_model,
                     parallel_context=self.parallel_context,

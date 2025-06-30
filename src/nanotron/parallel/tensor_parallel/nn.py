@@ -78,14 +78,14 @@ class TensorParallelColumnLinear(nn.Linear):
         self.async_communication = async_communication
 
         if self.world_size > 1:
-            assert (
-                os.environ.get("CUDA_DEVICE_MAX_CONNECTIONS", None) == "1"
-            ), "Env variable CUDA_DEVICE_MAX_CONNECTIONS should be set to 1 when using TP>1"
+            assert os.environ.get("CUDA_DEVICE_MAX_CONNECTIONS", None) == "1", (
+                "Env variable CUDA_DEVICE_MAX_CONNECTIONS should be set to 1 when using TP>1"
+            )
 
         if contiguous_chunks is not None:
-            assert (
-                sum(contiguous_chunks) == out_features
-            ), f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to out_features ({out_features})"
+            assert sum(contiguous_chunks) == out_features, (
+                f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to out_features ({out_features})"
+            )
         split_config = SplitConfig(split_dim=0, contiguous_chunks=contiguous_chunks)
 
         mark_all_parameters_in_module_as_sharded(
@@ -146,9 +146,9 @@ class TensorParallelRowLinear(nn.Linear):
             raise ValueError("async_communication is not supported for ALL_REDUCE mode")
 
         if contiguous_chunks is not None:
-            assert (
-                sum(contiguous_chunks) == in_features
-            ), f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to in_features ({in_features})"
+            assert sum(contiguous_chunks) == in_features, (
+                f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to in_features ({in_features})"
+            )
 
         split_config = SplitConfig(split_dim=1, contiguous_chunks=contiguous_chunks)
 
@@ -275,9 +275,9 @@ class TensorParallelEmbedding(nn.Embedding):
         self.mode = mode
 
         if contiguous_chunks is not None:
-            assert (
-                sum(contiguous_chunks) == num_embeddings
-            ), f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to num_embeddings ({num_embeddings})"
+            assert sum(contiguous_chunks) == num_embeddings, (
+                f"Sum of contiguous chunks ({sum(contiguous_chunks)}) must equal to num_embeddings ({num_embeddings})"
+            )
 
         split_config = SplitConfig(split_dim=0, contiguous_chunks=contiguous_chunks)
 

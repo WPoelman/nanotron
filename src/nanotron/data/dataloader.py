@@ -323,9 +323,9 @@ def get_train_dataloader(
         )
         dataset_length = len(train_dataset)
         train_dataset = train_dataset.remove_columns(column_names="input_ids")
-        assert (
-            len(train_dataset) == 0
-        ), f"Dataset has to be empty after removing the `input_ids` column. Current dataset: {train_dataset}"
+        assert len(train_dataset) == 0, (
+            f"Dataset has to be empty after removing the `input_ids` column. Current dataset: {train_dataset}"
+        )
         # HACK as if we remove the last column of a train_dataset, it becomes empty and it's number of rows becomes empty.
         train_dataset = EmptyInfiniteDataset(length=dataset_length)
         # No need to spawn a lot of workers, we can just use main

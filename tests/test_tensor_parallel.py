@@ -114,8 +114,9 @@ def _test_column_linear(
             sharded_output,
             reference_output[
                 :,
-                dist.get_rank(parallel_context.tp_pg)
-                * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+                dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                    dist.get_rank(parallel_context.tp_pg) + 1
+                )
                 * out_features_per_tp_rank,
             ],
         )
@@ -215,8 +216,9 @@ def _test_row_linear(
         row_linear.weight.copy_(
             reference_linear.weight[
                 :,
-                dist.get_rank(parallel_context.tp_pg)
-                * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+                dist.get_rank(parallel_context.tp_pg) * in_features_per_rank : (
+                    dist.get_rank(parallel_context.tp_pg) + 1
+                )
                 * in_features_per_rank,
             ]
         )
@@ -244,8 +246,7 @@ def _test_row_linear(
     random_sharded_input = (
         random_input[
             :,
-            dist.get_rank(parallel_context.tp_pg)
-            * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
             * in_features_per_rank,
         ]
         .detach()
@@ -264,8 +265,7 @@ def _test_row_linear(
         assert batch_size % parallel_context.tp_pg.size() == 0
         sharded_batch_size = batch_size // parallel_context.tp_pg.size()
         sharded_reference_output = reference_output[
-            dist.get_rank(parallel_context.tp_pg)
-            * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
             * sharded_batch_size
         ]
     else:
@@ -284,8 +284,7 @@ def _test_row_linear(
         row_linear.weight.grad,
         reference_linear.weight.grad[
             :,
-            dist.get_rank(parallel_context.tp_pg)
-            * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
             * in_features_per_rank,
         ],
     )
@@ -301,8 +300,7 @@ def _test_row_linear(
         random_sharded_input.grad,
         random_input.grad[
             :,
-            dist.get_rank(parallel_context.tp_pg)
-            * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * in_features_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
             * in_features_per_rank,
         ],
     )
@@ -339,8 +337,9 @@ def _test_tensor_parallel_embedding(parallel_context: ParallelContext, tp_mode: 
         dist.all_reduce(tensor=reference_embedding.weight, op=dist.ReduceOp.SUM, group=parallel_context.tp_pg)
         sharded_embedding.weight.copy_(
             reference_embedding.weight[
-                dist.get_rank(parallel_context.tp_pg)
-                * num_embeddings_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+                dist.get_rank(parallel_context.tp_pg) * num_embeddings_per_rank : (
+                    dist.get_rank(parallel_context.tp_pg) + 1
+                )
                 * num_embeddings_per_rank,
                 :,
             ]
@@ -369,13 +368,11 @@ def _test_tensor_parallel_embedding(parallel_context: ParallelContext, tp_mode: 
         assert batch_size % parallel_context.tp_pg.size() == 0
         sharded_batch_size = batch_size // parallel_context.tp_pg.size()
         sharded_reference_output = reference_output[
-            dist.get_rank(parallel_context.tp_pg)
-            * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
             * sharded_batch_size
         ]
         sharded_weights = weights[
-            dist.get_rank(parallel_context.tp_pg)
-            * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * sharded_batch_size : (dist.get_rank(parallel_context.tp_pg) + 1)
             * sharded_batch_size
         ]
     else:
@@ -390,8 +387,9 @@ def _test_tensor_parallel_embedding(parallel_context: ParallelContext, tp_mode: 
     torch.testing.assert_close(
         sharded_embedding.weight.grad,
         reference_embedding.weight.grad[
-            dist.get_rank(parallel_context.tp_pg)
-            * num_embeddings_per_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * num_embeddings_per_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * num_embeddings_per_rank,
             :,
         ],

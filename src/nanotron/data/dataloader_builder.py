@@ -31,7 +31,6 @@ def build_nanoset_dataloader(
     use_position_ids: bool = True,
     use_doc_masking: bool = True,
 ) -> DataLoader:
-
     # Case of ranks not requiring data. We give them a dummy dataset, then the collator will do his job
     if dist.get_rank(parallel_context.pp_pg) not in [input_pp_rank, output_pp_rank]:
         dataset_length = len(dataset)

@@ -29,7 +29,6 @@ def create_dataset_paths(tmp_dir: str, quantity: int):
 
 
 def create_dummy_json_dataset(path_to_json: str, dummy_text: str, n_samples: int = 50000):
-
     with open(path_to_json, "a") as json_file:
         for sample in range(n_samples):
             sample_dict = {"text": f"[{sample}] Hello! Im sample {sample}! And this is my dummy text: {dummy_text}"}

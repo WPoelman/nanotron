@@ -57,9 +57,9 @@ def tie_parameters(
             }
         )
     )
-    assert (
-        len(dp_ranks) == 1
-    ), f"Tying weights has to happen with a replica of a model. Got the ranks from the following replicas: {dp_ranks}"
+    assert len(dp_ranks) == 1, (
+        f"Tying weights has to happen with a replica of a model. Got the ranks from the following replicas: {dp_ranks}"
+    )
 
     name = ties[0][0]
     global_ranks = tuple(sorted(set().union(*(tie[1] for tie in ties))))

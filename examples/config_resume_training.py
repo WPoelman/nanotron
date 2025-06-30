@@ -1,8 +1,9 @@
-""" Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information.
+"""Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information.
 
 Usage:
 python examples/config_resume_training.py
 """
+
 import json
 import os
 

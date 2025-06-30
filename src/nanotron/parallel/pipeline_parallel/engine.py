@@ -103,9 +103,9 @@ class PipelineEngine(ABC):
         nb_backwards: int,
         grad_accumulator: Optional[GradientAccumulator],
     ):
-        assert (
-            self.nb_microbatches is not None
-        ), "You must call `train_batch_iter` first and set `self.nb_microbatches`"
+        assert self.nb_microbatches is not None, (
+            "You must call `train_batch_iter` first and set `self.nb_microbatches`"
+        )
         is_ddp = isinstance(model, DistributedDataParallel)
         context_list = []
         if is_ddp:
@@ -249,9 +249,9 @@ class OneForwardOneBackwardPipelineEngine(PipelineEngine):
     ) -> Iterable[Dict[str, Union[torch.Tensor, TensorPointer]]]:
         """Check https://arxiv.org/abs/2104.04473 for diagrams for the pipeline engine"""
         self.nb_microbatches = nb_microbatches
-        assert (
-            self.nb_microbatches >= pg.size() - 1
-        ), f"Number of microbatches ({self.nb_microbatches}) must be at least PP_SIZE-1={pg.size() - 1} when using the OneForwardOneBackwardPipelineEngine"
+        assert self.nb_microbatches >= pg.size() - 1, (
+            f"Number of microbatches ({self.nb_microbatches}) must be at least PP_SIZE-1={pg.size() - 1} when using the OneForwardOneBackwardPipelineEngine"
+        )
 
         state = PipelineTrainBatchState()
 
@@ -315,12 +315,12 @@ class OneForwardOneBackwardPipelineEngine(PipelineEngine):
             # Check figure in paper: The remain blocks are all backward and there is only `pg.size() - current_pp_rank - 1` blocks left
             assert len(state.microbatches_activations_requiring_backward) == pg.size() - current_pp_rank - 1
             # No more activation to send/recv
-            assert (
-                len(state.microbatches_activations_to_send) == 0
-            ), f"There are activations left for me to send still: {len(state.microbatches_activations_to_send)}"
-            assert (
-                len(state.microbatches_activations_to_recv) == 0
-            ), f"There are activations left for me to recv still: {len(state.microbatches_activations_to_recv)}"
+            assert len(state.microbatches_activations_to_send) == 0, (
+                f"There are activations left for me to send still: {len(state.microbatches_activations_to_send)}"
+            )
+            assert len(state.microbatches_activations_to_recv) == 0, (
+                f"There are activations left for me to recv still: {len(state.microbatches_activations_to_recv)}"
+            )
 
             # Close: compute backward for the rest
             # TODO @thomasw21: Somehow this needs to be done somewhere else to support interleaving. Somewhere right after a "stage"

@@ -74,7 +74,7 @@ def clm_process(
         batched=True,
         num_proc=dataset_processing_num_proc_per_process,
         load_from_cache_file=not dataset_overwrite_cache,
-        desc=f"Grouping texts in chunks of {sequence_length+1}",
+        desc=f"Grouping texts in chunks of {sequence_length + 1}",
     )
     return train_dataset
 

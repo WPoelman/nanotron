@@ -102,9 +102,9 @@ def checkpoint_method(attr_name: str):
                     if i < len(args):
                         continue
                     if arg_name not in kwargs:
-                        assert (
-                            arg_value.default is not inspect.Parameter.empty
-                        ), f"Missing argument {arg_name} from {kwargs} for {func.__name__}"
+                        assert arg_value.default is not inspect.Parameter.empty, (
+                            f"Missing argument {arg_name} from {kwargs} for {func.__name__}"
+                        )
                         all_args.append(arg_value.default)
                     else:
                         all_args.append(kwargs[arg_name])
@@ -130,7 +130,7 @@ def get_parameter_and_parent_module(target: str, root_module: nn.Module):
     param: torch.nn.Parameter = getattr(mod, param_name)
 
     if not isinstance(param, torch.nn.Parameter):
-        raise AttributeError("`" + param_name + "` is not an " "nn.Parameter")
+        raise AttributeError("`" + param_name + "` is not an nn.Parameter")
 
     return param, mod, param_name
 

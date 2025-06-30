@@ -127,9 +127,9 @@ def view_as_contiguous(tensor: torch.Tensor):
     untyped_storage = get_untyped_storage(tensor)
     untyped_storage_size = untyped_storage.size()
     untyped_element_size = untyped_storage.element_size()
-    assert (
-        tensor_numel * tensor_element_size >= untyped_storage_size * untyped_element_size
-    ), "Expect storage_size to be smaller than tensor size. It might not be true, when you use slicing for example though. We probably don't want to support it in our P2P system"
+    assert tensor_numel * tensor_element_size >= untyped_storage_size * untyped_element_size, (
+        "Expect storage_size to be smaller than tensor size. It might not be true, when you use slicing for example though. We probably don't want to support it in our P2P system"
+    )
     buffer = tensor_from_untyped_storage(untyped_storage=untyped_storage, dtype=tensor.dtype)
     return buffer
 
@@ -465,9 +465,9 @@ class BatchTensorSendRecvState:
         Run all communication in a batch.
         Return `torch.Tensor` in the case of recv.
         """
-        assert len(self.recv_first_metadata_buffers) == len(
-            self.recv_from_ranks
-        ), f"len(self.recv_first_metadata_buffers)={len(self.recv_first_metadata_buffers)}, len(self.recv_from_ranks)={len(self.recv_from_ranks)} but should be equal."
+        assert len(self.recv_first_metadata_buffers) == len(self.recv_from_ranks), (
+            f"len(self.recv_first_metadata_buffers)={len(self.recv_first_metadata_buffers)}, len(self.recv_from_ranks)={len(self.recv_from_ranks)} but should be equal."
+        )
 
         # If there is no communication, return
         if len(self.first_metadata_p2p_ops) == 0:

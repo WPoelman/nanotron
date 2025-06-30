@@ -4,6 +4,7 @@ Converts a nanotron model to HF format
 Command:
     torchrun --nproc_per_node=1 convert_nanotron_to_hf.py --checkpoint_path=nanotron_weights --save_path=HF_weights
 """
+
 import argparse
 import json
 from pathlib import Path

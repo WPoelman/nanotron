@@ -63,6 +63,7 @@ def push_to_wandb(wandb_project, wandb_entity, model_name, results_path, train_s
 
     wandb.finish()
 
+
 if __name__ == "__main__":
     # Setup argument parser
     parser = argparse.ArgumentParser(description="Upload evaluation results to Weights & Biases.")
@@ -71,7 +72,9 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model.")
     parser.add_argument("--results_path", type=str, required=True, help="S3 path to the results directory.")
     parser.add_argument("--train_step", type=int, required=True, help="Training step corresponding to the checkpoint.")
-    parser.add_argument("--consumed_tokens", type=int, required=True, help="Total consumed tokens up to this checkpoint.")
+    parser.add_argument(
+        "--consumed_tokens", type=int, required=True, help="Total consumed tokens up to this checkpoint."
+    )
 
     # Parse arguments
     args = parser.parse_args()
@@ -83,5 +86,5 @@ if __name__ == "__main__":
         model_name=args.model_name,
         results_path=args.results_path,
         train_step=args.train_step,
-        consumed_tokens=args.consumed_tokens
+        consumed_tokens=args.consumed_tokens,
     )

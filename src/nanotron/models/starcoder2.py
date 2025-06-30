@@ -12,12 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch Starcoder (GPT with Multi-Query Attention, RoPe, SWA and GQA).
+"""PyTorch Starcoder (GPT with Multi-Query Attention, RoPe, SWA and GQA).
 
 Some dependencies to update before using:
  - install `torch>=2.0`
  - install `flash-attn>=2.5.0`
- """
+"""
 
 import inspect
 import math
@@ -224,9 +224,9 @@ class CoreAttention(nn.Module):
 
         _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_varlen_func).parameters)
 
-        assert (
-            config.hidden_size % config.num_attention_heads == 0
-        ), f"Hidden size {config.hidden_size} must be divisible by number of attention heads {config.num_attention_heads}."
+        assert config.hidden_size % config.num_attention_heads == 0, (
+            f"Hidden size {config.hidden_size} must be divisible by number of attention heads {config.num_attention_heads}."
+        )
         self.d_qk = config.hidden_size // config.num_attention_heads
         # we still divide the value dimension by the number of heads https://arxiv.org/pdf/1911.02150.pdf
         self.d_v = config.hidden_size // config.num_attention_heads
@@ -240,9 +240,9 @@ class CoreAttention(nn.Module):
         self.checkpoint_attention = False  # Because flash_attn already does checkpointing
 
         if config.sliding_window_size is not None:
-            assert (
-                _flash_supports_window_size
-            ), "Current version of flash-attn doesn't support sliding window: `pip install flash-attn>=2.3`"
+            assert _flash_supports_window_size, (
+                "Current version of flash-attn doesn't support sliding window: `pip install flash-attn>=2.3`"
+            )
         self.sliding_window_size = config.sliding_window_size if layer_idx not in config.global_attn_layers else None
 
     @checkpoint_method(attr_name="checkpoint_attention")
@@ -618,9 +618,9 @@ class CausalSelfMQA(nn.Module, AttachableStore):
     ):
         super().__init__()
         # Tensor parallel considerations: We split tensors along head dimension
-        assert (
-            config.num_attention_heads % tp_pg.size() == 0
-        ), f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        assert config.num_attention_heads % tp_pg.size() == 0, (
+            f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        )
         self.tp_pg_size = tp_pg.size()
         self.n_heads = config.num_attention_heads // tp_pg.size()
         self.d_qk = config.hidden_size // config.num_attention_heads
@@ -765,7 +765,9 @@ class CausalSelfMQA(nn.Module, AttachableStore):
                 # but [ False, False, False, False,  True,  True,  False,  False,  True,  True] is not (can't mask in the middle of sequence)
                 assert ~(
                     sequence_mask[:, :-1] & (~sequence_mask[:, 1:])  # True is never followed by False
-                ).any(), "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                ).any(), (
+                    "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                )
 
                 # preallocate k_cache, v_cache to self.prefill_kv_len
                 k_cache = torch.zeros(
@@ -906,9 +908,9 @@ class CausalSelfGQA(nn.Module, AttachableStore):
                 f"`hidden_size` must be divisible by num_heads (got `hidden_size`: {self.hidden_size} and `num_heads`:"
                 f" {self.num_heads})."
             )
-        assert (
-            config.num_attention_heads % tp_pg.size() == 0
-        ), f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        assert config.num_attention_heads % tp_pg.size() == 0, (
+            f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        )
 
         self.maybe_rotary = (
             StarcoderRotaryEmbedding(head_dim=self.head_dim, base=config.rope_theta)
@@ -919,9 +921,9 @@ class CausalSelfGQA(nn.Module, AttachableStore):
         self.num_kv_heads = config.num_kv_heads if (not config.multi_query) else 1
         self.n_local_q_heads = self.num_heads // tp_pg.size()
         self.n_local_kv_heads = config.num_kv_heads // tp_pg.size()
-        assert (
-            config.num_kv_heads >= tp_pg.size()
-        ), f"Number of kv heads ({config.num_kv_heads}) must be >= TP size ({tp_pg.size()})."
+        assert config.num_kv_heads >= tp_pg.size(), (
+            f"Number of kv heads ({config.num_kv_heads}) must be >= TP size ({tp_pg.size()})."
+        )
         self.n_repeats = self.n_local_q_heads // self.n_local_kv_heads
 
         qkv_contiguous_chunks = None
@@ -1006,7 +1008,9 @@ class CausalSelfGQA(nn.Module, AttachableStore):
                 # but [ False, False, False, False,  True,  True,  False,  False,  True,  True] is not (can't mask in the middle of sequence)
                 assert ~(
                     sequence_mask[:, :-1] & (~sequence_mask[:, 1:])  # True is never followed by False
-                ).any(), "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                ).any(), (
+                    "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                )
 
                 # preallocate k_cache, v_cache to self.prefill_kv_len
                 k_cache = torch.zeros(
@@ -1393,9 +1397,7 @@ class Loss(nn.Module):
         # https://github.com/NVIDIA/Megatron-LM/blob/f267e6186eae1d6e2055b412b00e2e545a8e896a/megatron/model/gpt_model.py#L38
         loss = sharded_cross_entropy(
             sharded_logits, label_ids.transpose(0, 1).contiguous(), group=self.tp_pg, dtype=torch.float
-        ).transpose(
-            0, 1
-        )  # TODO @nouamane: case where TP=1 should be simpler
+        ).transpose(0, 1)  # TODO @nouamane: case where TP=1 should be simpler
         # TODO @thomasw21: It's unclear what kind of normalization we want to do.
         loss = masked_mean(loss, label_mask, dtype=torch.float)
         # I think indexing causes a sync we don't actually want
@@ -1553,7 +1555,9 @@ class Starcoder2ForTraining(NanotronModel):
             if param.is_tied
             else name
             for name, param in model.named_parameters()
-        }, f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        }, (
+            f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        )
 
     def get_embeddings_lm_head_tied_names(self) -> List[str]:
         return [

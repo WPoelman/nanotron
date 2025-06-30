@@ -14,9 +14,9 @@ def fp8_matmul_kernel(
     transpose_b: bool,
     use_split_accumulator: bool,
 ) -> torch.Tensor:
-    assert (
-        mat_a.device != "cpu" and mat_b.device != "cpu"
-    ), "The tensors must be on a CUDA device in order to use the FP8 kernel!!"
+    assert mat_a.device != "cpu" and mat_b.device != "cpu", (
+        "The tensors must be on a CUDA device in order to use the FP8 kernel!!"
+    )
 
     device = mat_a.device
 

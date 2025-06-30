@@ -130,18 +130,18 @@ def save_lr_scheduler(
 # Helper functions to move optimizer states
 @torch.no_grad()
 def state_dict_to_device(state_dict: Dict, device: str) -> Dict:
-    assert (
-        state_dict["state"][0]["exp_avg"].device.type == "cpu"
-    ), "Optimizer states should be on CPU to avoid extra memory usage when loading from checkpoint"
+    assert state_dict["state"][0]["exp_avg"].device.type == "cpu", (
+        "Optimizer states should be on CPU to avoid extra memory usage when loading from checkpoint"
+    )
     torch.cuda.empty_cache()
 
     for _, optim_state in sorted(state_dict["state"].items(), key=lambda x: x[0]):
         for name, tensor in optim_state.items():
             optim_state[name] = tensor.to(device)
 
-    assert (
-        state_dict["state"][0]["exp_avg"].device.type == "cuda"
-    ), "Optimizer states should be on GPU because model is on GPU"
+    assert state_dict["state"][0]["exp_avg"].device.type == "cuda", (
+        "Optimizer states should be on GPU because model is on GPU"
+    )
     torch.cuda.empty_cache()
 
 
@@ -171,12 +171,12 @@ def load_optimizer(
             warnings.warn(
                 "You are resuming in a different PP size, so optimizer states need to be checked. Feel free to open a PR if you work on this!"
             )
-        assert (
-            param_shard_metadata is not None
-        ), f"You have to pass how the original parameters are sharded in order to resume in a different tensor parallel size, ckp_tp_size: {ckp_tp_size}, current tp_size: {parallel_context.tp_pg.size()}"
-        assert (
-            model is not None
-        ), "You have to pass the model in order to adjust the optimizer states according to how the current parameters are sharded"
+        assert param_shard_metadata is not None, (
+            f"You have to pass how the original parameters are sharded in order to resume in a different tensor parallel size, ckp_tp_size: {ckp_tp_size}, current tp_size: {parallel_context.tp_pg.size()}"
+        )
+        assert model is not None, (
+            "You have to pass the model in order to adjust the optimizer states according to how the current parameters are sharded"
+        )
 
         def get_checkpoint_state_metadata(param_name: str, pp_rank: int, tp_rank: int) -> TensorMetadata:
             return param_shard_metadata[param_name.replace("module.", "")][(str(pp_rank), str(tp_rank))]

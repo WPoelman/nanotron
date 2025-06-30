@@ -104,9 +104,9 @@ class LlamaConfig:
 
         # Validate that the attention implementation is valid
         if self._attn_implementation is not None:
-            assert (
-                self._attn_implementation in ALL_ATTENTION_FUNCTIONS
-            ), f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            assert self._attn_implementation in ALL_ATTENTION_FUNCTIONS, (
+                f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            )
 
     @property
     def is_using_mup(self) -> bool:
@@ -137,7 +137,9 @@ class Qwen2Config:
     rope_scaling: Optional[dict] = None
     rope_theta: float = 10000.0
     rope_interleaved: bool = False
-    rope_seq_len_interpolation_factor: Optional[float] = None  # if not None, discrete positions will be interpolated by this factor via the trick in https://arxiv.org/abs/2306.15595
+    rope_seq_len_interpolation_factor: Optional[float] = (
+        None  # if not None, discrete positions will be interpolated by this factor via the trick in https://arxiv.org/abs/2306.15595
+    )
     tie_word_embeddings: bool = False
     use_cache: bool = True
     vocab_size: int = 32000
@@ -147,16 +149,16 @@ class Qwen2Config:
     sliding_window_size: Optional[int] = None
     z_loss_enabled: bool = False  # Z-loss regularization https://www.jmlr.org/papers/volume24/22-1144/22-1144.pdf
     z_loss_coefficient: float = 0.0001  # Default from the paper (10^-4)
-    no_rope_layer: Optional[
-        int
-    ] = None  # Skip rope every no_rope_layer layers (see https://arxiv.org/abs/2501.18795 https://arxiv.org/abs/2305.19466 and Llama4)
+    no_rope_layer: Optional[int] = (
+        None  # Skip rope every no_rope_layer layers (see https://arxiv.org/abs/2501.18795 https://arxiv.org/abs/2305.19466 and Llama4)
+    )
     _fused_rotary_emb: bool = True
     _fused_rms_norm: bool = True
     _use_qkv_packed: bool = True
     _use_doc_masking: bool = False
 
-    log_attn_probs: bool = True # Whether to log the attention probabilities
-    ring_attn_heads_k_stride: Optional[int] = None # Stride of the heads in the key tensor for llama3 ring attention
+    log_attn_probs: bool = True  # Whether to log the attention probabilities
+    ring_attn_heads_k_stride: Optional[int] = None  # Stride of the heads in the key tensor for llama3 ring attention
 
     # MoE configuration
     moe_config: Optional[MoEConfig] = None
@@ -177,9 +179,9 @@ class Qwen2Config:
 
         # Validate that the attention implementation is valid
         if self._attn_implementation is not None:
-            assert (
-                self._attn_implementation in ALL_ATTENTION_FUNCTIONS
-            ), f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            assert self._attn_implementation in ALL_ATTENTION_FUNCTIONS, (
+                f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            )
 
         if self.sliding_window_size is not None:
             assert self._attn_implementation in [
@@ -188,23 +190,27 @@ class Qwen2Config:
                 "llama3_ring_attention",
             ], "Sliding window is only supported for Flex Attention and Flash Attention 2"
         if self.flex_attention_mask is not None:
-            assert (
-                self._attn_implementation == "flex_attention"
-            ), "Flex attention mask is only supported for flex attention"
+            assert self._attn_implementation == "flex_attention", (
+                "Flex attention mask is only supported for flex attention"
+            )
             assert self.flex_attention_mask in [
                 "sliding_window",
                 "document",
                 "sliding_window_document",
             ], "Flex attention mask must be one of ['sliding_window', 'document', 'sliding_window_document']"
         if self.no_rope_layer is not None:
-            assert (
-                self.num_hidden_layers % self.no_rope_layer == 0
-            ), "no_rope_layer must be a multiple of num_hidden_layers"
+            assert self.num_hidden_layers % self.no_rope_layer == 0, (
+                "no_rope_layer must be a multiple of num_hidden_layers"
+            )
 
         if self._attn_implementation == "llama3_ring_attention":
-            assert self.ring_attn_heads_k_stride is not None, "ring_attn_heads_k_stride must be specified for llama3 ring attention"
+            assert self.ring_attn_heads_k_stride is not None, (
+                "ring_attn_heads_k_stride must be specified for llama3 ring attention"
+            )
         else:
-            assert self.ring_attn_heads_k_stride is None, f"ring_attn_heads_k_stride must be None for non-llama3 ring attention, got attn_implementation={self._attn_implementation}"
+            assert self.ring_attn_heads_k_stride is None, (
+                f"ring_attn_heads_k_stride must be None for non-llama3 ring attention, got attn_implementation={self._attn_implementation}"
+            )
 
     @property
     def is_using_mup(self) -> bool:
@@ -264,9 +270,9 @@ class Starcoder2Config:
 
         # Validate that the attention implementation is valid
         if self._attn_implementation is not None:
-            assert (
-                self._attn_implementation in ALL_ATTENTION_FUNCTIONS
-            ), f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            assert self._attn_implementation in ALL_ATTENTION_FUNCTIONS, (
+                f"Invalid attention implementation: {self._attn_implementation}. Available options are: {ALL_ATTENTION_FUNCTIONS.keys()}"
+            )
 
     @property
     def n_embed(self):

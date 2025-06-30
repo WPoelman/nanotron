@@ -477,7 +477,6 @@ class _ColumnLinearNoAsyncCommunicationReduceScatterMode(torch.autograd.Function
         group: dist.ProcessGroup,
         tp_recompute_allgather: bool,
     ):
-
         # Do allgather.
         sharded_batch_size, *rest_size = input.shape
         unsharded_batch_size = sharded_batch_size * group.size()
@@ -569,9 +568,9 @@ def column_linear(
 class _RowLinearAsyncCommunication(torch.autograd.Function):
     @staticmethod
     def forward(ctx, tensor, weight, bias, group, tp_mode):
-        assert (
-            tp_mode is TensorParallelLinearMode.REDUCE_SCATTER
-        ), f"async communication in RowLinear only supports REDUCE_SCATTER, got {tp_mode}"
+        assert tp_mode is TensorParallelLinearMode.REDUCE_SCATTER, (
+            f"async communication in RowLinear only supports REDUCE_SCATTER, got {tp_mode}"
+        )
 
         if group is None:
             group = dist.distributed_c10d._get_default_group()

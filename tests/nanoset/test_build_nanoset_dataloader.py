@@ -126,11 +126,15 @@ def _test_build_nanoset_dataloader(
             assert (
                 np.max(train_dataset.dataset_sample_index, where=train_dataset.dataset_index == idx, initial=-1)
                 < ds_length
-            ), f"Error building Nanoset Indexes: Tryng to access sample {np.max(train_dataset.dataset_sample_index, where=train_dataset.dataset_index==idx, initial = -1)} of a {ds_length} sample dataset"
+            ), (
+                f"Error building Nanoset Indexes: Tryng to access sample {np.max(train_dataset.dataset_sample_index, where=train_dataset.dataset_index == idx, initial=-1)} of a {ds_length} sample dataset"
+            )
             # Assert Nanoset builds up the correct blend WRT the dataset_weights
             assert isclose(
                 normalize(dataset_sample_count).tolist()[idx], train_dataset.dataset_weights[idx], abs_tol=0.05
-            ), f"Requested Nanoset to contain {round(train_dataset.dataset_weights[idx]*100, 2)}% of samples from {train_dataset.dataset_folders[idx]} but got {round(normalize(dataset_sample_count).tolist()[idx]*100, 2)}%"
+            ), (
+                f"Requested Nanoset to contain {round(train_dataset.dataset_weights[idx] * 100, 2)}% of samples from {train_dataset.dataset_folders[idx]} but got {round(normalize(dataset_sample_count).tolist()[idx] * 100, 2)}%"
+            )
         # Create Dataloaders
         dataloader = build_nanoset_dataloader(
             train_dataset,

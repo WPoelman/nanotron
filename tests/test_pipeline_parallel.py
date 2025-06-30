@@ -326,7 +326,7 @@ def _test_pipeline_engine_with_tensor_that_does_not_require_grad(
     # synchronize weights
     if has_reference_model:
         with torch.inference_mode():
-            for (mlp_index, pp_rank) in mlp_index_pp_rank:
+            for mlp_index, pp_rank in mlp_index_pp_rank:
                 non_linear = model.mlp[mlp_index]
                 reference_non_linear = reference_model.mlp[mlp_index]
                 if pp_rank == current_pp_rank:
@@ -339,7 +339,7 @@ def _test_pipeline_engine_with_tensor_that_does_not_require_grad(
                 reference_non_linear.linear.pp_block.weight.data.copy_(weight.data)
                 reference_non_linear.linear.pp_block.bias.data.copy_(bias.data)
     else:
-        for (mlp_index, pp_rank) in mlp_index_pp_rank:
+        for mlp_index, pp_rank in mlp_index_pp_rank:
             if pp_rank == current_pp_rank:
                 p2p.send_tensors(
                     [model.mlp[mlp_index].linear.pp_block.weight, model.mlp[mlp_index].linear.pp_block.bias],
@@ -410,7 +410,7 @@ def _test_pipeline_engine_with_tensor_that_does_not_require_grad(
 
     # Check that gradient are the same as reference
     if has_reference_model:
-        for (mlp_index, pp_rank) in mlp_index_pp_rank:
+        for mlp_index, pp_rank in mlp_index_pp_rank:
             non_linear = model.mlp[mlp_index]
             reference_non_linear = reference_model.mlp[mlp_index]
             if pp_rank == current_pp_rank:
@@ -435,7 +435,7 @@ def _test_pipeline_engine_with_tensor_that_does_not_require_grad(
             )
             torch.testing.assert_close(bias_grad, reference_non_linear.linear.pp_block.bias.grad, atol=1e-6, rtol=1e-7)
     else:
-        for (mlp_index, pp_rank) in mlp_index_pp_rank:
+        for mlp_index, pp_rank in mlp_index_pp_rank:
             if pp_rank == current_pp_rank:
                 p2p.send_tensors(
                     [model.mlp[mlp_index].linear.pp_block.weight.grad, model.mlp[mlp_index].linear.pp_block.bias.grad],

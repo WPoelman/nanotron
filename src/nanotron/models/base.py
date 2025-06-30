@@ -14,6 +14,7 @@ from nanotron.logging import log_rank
 from nanotron.parallel.context import ParallelContext
 from nanotron.parallel.pipeline_parallel.block import PipelineBlock
 from nanotron.logging import LoggingCollectorMixin
+
 if TYPE_CHECKING:
     from nanotron.config import NanotronConfigs
     from nanotron.parallel.parameters import NanotronParameter
@@ -59,8 +60,7 @@ class NanotronModel(nn.Module, LoggingCollectorMixin, metaclass=ABCMeta):
         yield from params_gen()
 
     @abstractmethod
-    def init_model_randomly(self, config):
-        ...
+    def init_model_randomly(self, config): ...
 
     def tie_custom_params(self) -> None:
         """Tie custom parameters. For example for MQA marks kv heads as tied."""

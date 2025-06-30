@@ -1,4 +1,5 @@
-""" LlaMa model with MoEs"""
+"""LlaMa model with MoEs"""
+
 import warnings
 from functools import partial
 from typing import Optional, Tuple

@@ -273,8 +273,9 @@ def _test_clip_grads_with_tp(
         sharded_output,
         reference_output[
             :,
-            dist.get_rank(parallel_context.tp_pg)
-            * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * out_features_per_tp_rank,
         ],
         atol=1e-6,
@@ -287,8 +288,9 @@ def _test_clip_grads_with_tp(
     torch.testing.assert_close(
         column_linear.weight.grad,
         reference_linear.weight.grad[
-            dist.get_rank(parallel_context.tp_pg)
-            * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * out_features_per_tp_rank
         ],
         atol=1e-6,
@@ -297,8 +299,9 @@ def _test_clip_grads_with_tp(
     torch.testing.assert_close(
         column_linear.bias.grad,
         reference_linear.bias.grad[
-            dist.get_rank(parallel_context.tp_pg)
-            * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * out_features_per_tp_rank
         ],
         atol=1e-6,
@@ -323,16 +326,18 @@ def _test_clip_grads_with_tp(
     torch.testing.assert_close(
         column_linear.weight.grad,
         reference_linear.weight.grad[
-            dist.get_rank(parallel_context.tp_pg)
-            * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * out_features_per_tp_rank
         ],
     )
     torch.testing.assert_close(
         column_linear.bias.grad,
         reference_linear.bias.grad[
-            dist.get_rank(parallel_context.tp_pg)
-            * out_features_per_tp_rank : (dist.get_rank(parallel_context.tp_pg) + 1)
+            dist.get_rank(parallel_context.tp_pg) * out_features_per_tp_rank : (
+                dist.get_rank(parallel_context.tp_pg) + 1
+            )
             * out_features_per_tp_rank
         ],
     )

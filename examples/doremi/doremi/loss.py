@@ -85,9 +85,9 @@ class DomainLossForProxyTraining:
 
     def __call__(self, losses: torch.Tensor, ref_losses: torch.Tensor, domain_idxs: torch.Tensor):
         assert losses.shape == ref_losses.shape, "losses and ref_losses must have the same shape"
-        assert (
-            domain_idxs.shape[0] == losses.shape[0]
-        ), "the batch size of domain_idxs must match the batch size of losses"
+        assert domain_idxs.shape[0] == losses.shape[0], (
+            "the batch size of domain_idxs must match the batch size of losses"
+        )
 
         # NOTE: sometimes you'll see the domain losses equal to zero.
         # this doesn't mean there are bugs, it just means that in that case,

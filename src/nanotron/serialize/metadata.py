@@ -15,6 +15,7 @@ from nanotron.parallel import ParallelContext
 from nanotron.parallel.parameters import SlicesPair
 from collections import defaultdict
 
+
 @dataclasses.dataclass
 class DataStageMetadata:
     """
@@ -24,20 +25,27 @@ class DataStageMetadata:
 
     name: str
     start_training_step: int
-    consumed_train_samples: int # We use this for sampler, and it's reset at each stage
-    sequence_length: Optional[int] = None # TODO: put back as non-optional
-    consumed_tokens_per_dataset_folder: Dict[str, int] = dataclasses.field(default_factory=dict) # this gets reset at each stage
+    consumed_train_samples: int  # We use this for sampler, and it's reset at each stage
+    sequence_length: Optional[int] = None  # TODO: put back as non-optional
+    consumed_tokens_per_dataset_folder: Dict[str, int] = dataclasses.field(
+        default_factory=dict
+    )  # this gets reset at each stage
 
     def __post_init__(self):
         if self.sequence_length is None:
-            self.sequence_length = 4096 # TODO: temp
+            self.sequence_length = 4096  # TODO: temp
 
     def sanity_consumed_train_samples(self):
-        assert self.consumed_train_samples*self.sequence_length == sum(self.consumed_tokens_per_dataset_folder.values()), f"Mismatch between the total consumed samples and the sum of consumed samples across dataset folders! consumed_train_samples={self.consumed_train_samples}, sequence_length={self.sequence_length}, consumed_tokens_per_dataset_folder={self.consumed_tokens_per_dataset_folder}"
+        assert self.consumed_train_samples * self.sequence_length == sum(
+            self.consumed_tokens_per_dataset_folder.values()
+        ), (
+            f"Mismatch between the total consumed samples and the sum of consumed samples across dataset folders! consumed_train_samples={self.consumed_train_samples}, sequence_length={self.sequence_length}, consumed_tokens_per_dataset_folder={self.consumed_tokens_per_dataset_folder}"
+        )
 
     @property
     def consumed_tokens_all_datasets(self):
         return sum(self.consumed_tokens_per_dataset_folder.values())
+
 
 @dataclasses.dataclass
 class TrainingMetadata:
@@ -48,9 +56,9 @@ class TrainingMetadata:
     data_stages: The metadata for each stage.
     """
 
-    consumed_train_samples: int # TODO: Legacy. This assumed same sequence length across all stages. Not used anymore
+    consumed_train_samples: int  # TODO: Legacy. This assumed same sequence length across all stages. Not used anymore
     last_train_step: int
-    consumed_tokens_total: Optional[int] = None # TODO: put back as non-optional
+    consumed_tokens_total: Optional[int] = None  # TODO: put back as non-optional
 
     # TODO(xrsrke): make this not optional, once we entirely remove
     # the old checkpoint version
@@ -59,12 +67,16 @@ class TrainingMetadata:
 
     def __post_init__(self):
         # NOTE: this is a sanity check after loading a trained checkpoint
-        assert (
-            self.consumed_train_samples == sum(stage.consumed_train_samples for stage in self.data_stages)
-        ), "Mismatch between the total consumed samples and the sum of consumed samples across stages! Something went wrong in the training."
+        assert self.consumed_train_samples == sum(stage.consumed_train_samples for stage in self.data_stages), (
+            "Mismatch between the total consumed samples and the sum of consumed samples across stages! Something went wrong in the training."
+        )
 
         if self.consumed_tokens_total is not None:
-            assert self.consumed_tokens_total == sum(stage.consumed_tokens_all_datasets for stage in self.data_stages), "Mismatch between the total consumed tokens and the sum of consumed tokens across stages! Something went wrong in the training."
+            assert self.consumed_tokens_total == sum(
+                stage.consumed_tokens_all_datasets for stage in self.data_stages
+            ), (
+                "Mismatch between the total consumed tokens and the sum of consumed tokens across stages! Something went wrong in the training."
+            )
         else:
             self.consumed_tokens_total = sum(stage.consumed_tokens_all_datasets for stage in self.data_stages)
 
@@ -79,7 +91,7 @@ class TrainingMetadata:
             for dataset_folder, tokens in stage.consumed_tokens_per_dataset_folder.items():
                 consumed[dataset_folder] += tokens
         return consumed
-    
+
     @property
     def current_stage(self) -> DataStageMetadata:
         return self.data_stages[self.last_stage_idx]
@@ -190,7 +202,7 @@ def load_meta(parallel_context: ParallelContext, root_folder: Path) -> Checkpoin
             ),
         )
         # Assume that we're always backward compatible, we only increment CHECKPOINT_VERSION when there's a breaking change.
-        assert (
-            checkpoint_metadata.version <= CHECKPOINT_VERSION
-        ), f"Checkpoint is of version {checkpoint_metadata.version}, Current `nanotron` checkpoint version is {CHECKPOINT_VERSION}"
+        assert checkpoint_metadata.version <= CHECKPOINT_VERSION, (
+            f"Checkpoint is of version {checkpoint_metadata.version}, Current `nanotron` checkpoint version is {CHECKPOINT_VERSION}"
+        )
     return checkpoint_metadata

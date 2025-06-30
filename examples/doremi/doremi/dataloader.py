@@ -96,9 +96,9 @@ class DataCollatorForCLM:
         result["label_ids"] = TensorPointer(group_rank=self.output_pp_rank)
         result["label_mask"] = TensorPointer(group_rank=self.output_pp_rank)
 
-        assert (
-            expanded_input_length == self.sequence_length + 1
-        ), f"Samples should be of length {self.sequence_length + 1} (seq_len+1), but got {expanded_input_length}"
+        assert expanded_input_length == self.sequence_length + 1, (
+            f"Samples should be of length {self.sequence_length + 1} (seq_len+1), but got {expanded_input_length}"
+        )
 
         # Process inputs: last token is the label
         if current_pp_rank == self.input_pp_rank:
@@ -142,9 +142,9 @@ class DistributedSamplerForDoReMi(DistributedSampler):
         seed: int = 42,
         drop_last: bool = False,
     ):
-        assert len(datasets) == len(
-            doremi_context.domain_weights
-        ), "The number of datasets must equal to the number of domain weights"
+        assert len(datasets) == len(doremi_context.domain_weights), (
+            "The number of datasets must equal to the number of domain weights"
+        )
 
         super().__init__(datasets, num_replicas=num_replicas, rank=rank, shuffle=shuffle, drop_last=drop_last)
 

@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Logging utilities. """
+"""Logging utilities."""
+
 import logging
 import os
 import sys
@@ -94,7 +95,7 @@ def _get_default_logging_level():
         else:
             logging.getLogger().warning(
                 f"Unknown option NANOTRON_LOGGING_LEVEL={env_level_str}, "
-                f"has to be one of: { ', '.join(log_levels.keys()) }"
+                f"has to be one of: {', '.join(log_levels.keys())}"
             )
     return DEFAULT_LOG_LEVEL
 

@@ -122,15 +122,15 @@ def _test_zero_optimizer(parallel_context: ParallelContext):
                     rtol=0,
                     msg=lambda msg: f"Weights don't match: {msg}\n - Expected slice: {expected_slice}\n - Got: {sliced_param}\n - Full gradient: {param}",
                 )
-                assert (
-                    expected_slice.data_ptr() == sliced_param.data_ptr()
-                ), "Parameters should actually share the same data pointer"
+                assert expected_slice.data_ptr() == sliced_param.data_ptr(), (
+                    "Parameters should actually share the same data pointer"
+                )
 
                 # Check gradients is the view
                 expected_slice = param.grad.view(-1)[slice(*offsets)].view_as(sliced_param.grad)
-                assert (
-                    expected_slice.data_ptr() == sliced_param.grad.data_ptr()
-                ), "Parameters should actually share the same data pointer"
+                assert expected_slice.data_ptr() == sliced_param.grad.data_ptr(), (
+                    "Parameters should actually share the same data pointer"
+                )
                 torch.testing.assert_close(
                     expected_slice,
                     sliced_param.grad,
@@ -165,7 +165,7 @@ def _test_zero_optimizer(parallel_context: ParallelContext):
             torch.testing.assert_close(param, ref_param, msg=lambda msg: f"At iteration {i}, {msg}")
 
         # Check params have been updated correctly
-        for (name, param) in model.named_parameters():
+        for name, param in model.named_parameters():
             old_param = old_named_params[name]
             assert not torch.allclose(param, old_param)
 
@@ -396,15 +396,15 @@ def _test_zero_optimizer_with_tp(
                     rtol=0,
                     msg=lambda msg: f"At iteration {i}, weights don't match: {msg}\n - Expected slice: {expected_slice}\n - Got: {sliced_param}\n - Full gradient: {param}",
                 )
-                assert (
-                    expected_slice.data_ptr() == sliced_param.data_ptr()
-                ), "Parameters should actually share the same data pointer"
+                assert expected_slice.data_ptr() == sliced_param.data_ptr(), (
+                    "Parameters should actually share the same data pointer"
+                )
 
                 # Check that gradients share the same storage
                 expected_slice = param.grad.view(-1)[slice(*offsets)].view_as(sliced_param.grad)
-                assert (
-                    expected_slice.data_ptr() == sliced_param.grad.data_ptr()
-                ), "Parameters should actually share the same data pointer"
+                assert expected_slice.data_ptr() == sliced_param.grad.data_ptr(), (
+                    "Parameters should actually share the same data pointer"
+                )
                 torch.testing.assert_close(
                     expected_slice,
                     sliced_param.grad,
@@ -447,7 +447,7 @@ def _test_zero_optimizer_with_tp(
                 torch.testing.assert_close(param, ref_param, msg=lambda msg: f"At iteration {i}, {msg}")
 
         # Check params have been updated correctly:
-        for (name, param) in model.named_parameters():
+        for name, param in model.named_parameters():
             old_param = old_named_params[name]
             assert not torch.allclose(param, old_param)
 

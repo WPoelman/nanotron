@@ -113,9 +113,9 @@ def before_tbi_sanity_checks(
 
         # SANITY CHECK: Check that optimizer's lr is synchronized with lr_scheduler
         for i, group in enumerate(lr_scheduler.optimizer.param_groups):
-            assert (
-                group["lr"] == lr_scheduler.get_last_lr()[i]
-            ), f"Optimizer and LR scheduler are not in sync. Got {group['lr']} and {lr_scheduler.get_last_lr()[i]}"
+            assert group["lr"] == lr_scheduler.get_last_lr()[i], (
+                f"Optimizer and LR scheduler are not in sync. Got {group['lr']} and {lr_scheduler.get_last_lr()[i]}"
+            )
             break
 
         # SANITY CHECK: run model specific sanity checks
@@ -151,7 +151,7 @@ def after_tbi_sanity_checks(
                 raise ValueError(f"Gradient is nan or inf for {name}")
             if grad is None:
                 log_rank(
-                    f"Process rank { dist.get_rank(parallel_context.world_pg)}/{parallel_context.world_pg.size()}: {name} is missing gradient",
+                    f"Process rank {dist.get_rank(parallel_context.world_pg)}/{parallel_context.world_pg.size()}: {name} is missing gradient",
                     logger=logger,
                     level=logging.ERROR,
                 )
@@ -255,7 +255,7 @@ def after_optim_step_sanity_checks(
 
             if param.grad is not None:
                 log_rank(
-                    f"Process rank { dist.get_rank(parallel_context.world_pg)}/{parallel_context.world_pg.size()}: {name} still has gradient despite having ran the optimizer",
+                    f"Process rank {dist.get_rank(parallel_context.world_pg)}/{parallel_context.world_pg.size()}: {name} still has gradient despite having ran the optimizer",
                     logger=logger,
                     level=logging.ERROR,
                 )

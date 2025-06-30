@@ -7,9 +7,8 @@ from flash_attn.flash_attn_interface import (
     _flash_attn_varlen_backward,
 )
 
-def llama3_flash_attn_prepare_cu_seqlens(
-    cu_seqlens: torch.Tensor, causal: bool, rank: int, world_size: int
-):
+
+def llama3_flash_attn_prepare_cu_seqlens(cu_seqlens: torch.Tensor, causal: bool, rank: int, world_size: int):
     """
     Args:
         cu_seqlens: torch.Tensor, the cu_seqlens of all the sequences across the ring process group.
@@ -218,9 +217,7 @@ def llama3_flash_attn_varlen_backward(
     for i in range(0, nheads_k, heads_k_stride):
         dkv_buffer.zero_()
 
-        q_slice = slice(
-            i * nheads // nheads_k, (i + heads_k_stride) * nheads // nheads_k
-        )
+        q_slice = slice(i * nheads // nheads_k, (i + heads_k_stride) * nheads // nheads_k)
         q_i = q[:, q_slice]
         dout_i = dout[:, q_slice]
         out_i = out[:, q_slice]
@@ -504,8 +501,6 @@ def llama3_flash_attn_varlen_func(
     )
 
 
-
-
 ## triton_utils.py
 import torch
 import triton
@@ -685,7 +680,6 @@ def _update_out_and_lse(
     block_out: torch.Tensor,
     block_lse: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-
     block_out = block_out.to(torch.float32)
     block_lse = block_lse.transpose(-2, -1).unsqueeze(dim=-1)
 
@@ -806,5 +800,6 @@ class AllGatherComm:
         for handle in self.handles:
             handle.wait()
         self.handles = []
+
 
 Comm = AllGatherComm

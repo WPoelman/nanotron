@@ -5,6 +5,7 @@ Converts a HF model to a Nanotron model
 Command:
     torchrun --nproc_per_node=1 convert_hf_to_nanotron.py --inp_path state-spaces/mamba-130m-hf --out_path nanotron_weights
 """
+
 import argparse
 import json
 from dataclasses import asdict
@@ -246,9 +247,9 @@ if __name__ == "__main__":
                     global_slices = local_global_slices_pair.global_slices
                     param[local_slices].copy_(ref_param[global_slices])
         else:
-            assert (
-                ref_param.shape == param.shape
-            ), f"Parameter shape don't match for {name}\n{ref_param.shape} != {param.shape}"
+            assert ref_param.shape == param.shape, (
+                f"Parameter shape don't match for {name}\n{ref_param.shape} != {param.shape}"
+            )
             # copy param data (not just the reference)
             with torch.no_grad():
                 param.copy_(ref_param)

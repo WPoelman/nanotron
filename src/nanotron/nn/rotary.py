@@ -5,6 +5,7 @@ from flash_attn.layers.rotary import RotaryEmbedding as OrigFlashRotaryEmbedding
 from einops import rearrange
 from nanotron import logging
 from nanotron.logging import warn_once
+
 logger = logging.get_logger(__name__)
 
 
@@ -145,9 +146,9 @@ class RotaryEmbedding(nn.Module):
         if pass_through_part is not None and pass_through_part.shape[-1] > 0:
             return torch.cat((rotated_tensor, pass_through_part), dim=-1)
         return rotated_tensor
-    
-class FlashRotaryEmbedding(OrigFlashRotaryEmbedding):
 
+
+class FlashRotaryEmbedding(OrigFlashRotaryEmbedding):
     def __init__(
         self,
         dim: int,
@@ -199,7 +200,9 @@ class FlashRotaryEmbedding(OrigFlashRotaryEmbedding):
 
             # fixed linear scaling
             if self.seq_len_interpolation_factor is not None:
-                warn_once(f"seq_len_interpolation_factor is set to {self.seq_len_interpolation_factor}", logger, rank=0)
+                warn_once(
+                    f"seq_len_interpolation_factor is set to {self.seq_len_interpolation_factor}", logger, rank=0
+                )
                 t *= 1 / self.seq_len_interpolation_factor
 
             # Don't do einsum, it converts fp32 to fp16 under AMP
@@ -210,8 +213,7 @@ class FlashRotaryEmbedding(OrigFlashRotaryEmbedding):
                 self._sin_cached = torch.sin(freqs).to(dtype)
             else:
                 power = (
-                    torch.arange(seqlen, dtype=self.scale.dtype, device=self.scale.device)
-                    - seqlen // 2
+                    torch.arange(seqlen, dtype=self.scale.dtype, device=self.scale.device) - seqlen // 2
                 ) / self.scale_base
                 scale = self.scale.to(device=power.device) ** rearrange(power, "s -> s 1")
                 # We want the multiplication by scale to happen in fp32

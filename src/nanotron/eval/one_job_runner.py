@@ -1,5 +1,5 @@
-""" Mostly complete a SLURM template with a link to a single checkpoint on s3 and launch it
-"""
+"""Mostly complete a SLURM template with a link to a single checkpoint on s3 and launch it"""
+
 import datetime
 import math
 import os
@@ -272,7 +272,7 @@ python {nanotron_path}/src/nanotron/eval/upload_to_wandb.py \\
     --model_name {general_run_name} \\
     --results_path {lighteval_config.s3_save_path}/results/results/{general_run_name}/{current_step}/ \\
     --train_step {current_step} \\
-    --consumed_tokens {current_step*gbs_tok}
+    --consumed_tokens {current_step * gbs_tok}
 """
     slurm_script += """
 echo "Cleaning up downloaded checkpoints..."
@@ -323,7 +323,6 @@ echo "END TIME: $(date)"
 
 
 if __name__ == "__main__":
-
     from nanotron.config.config import Config
 
     # Load existing config from checkpoint

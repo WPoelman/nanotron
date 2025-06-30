@@ -180,8 +180,7 @@ class BaseMegatronSampler:
         )
 
     @abc.abstractmethod
-    def __iter__(self):
-        ...
+    def __iter__(self): ...
 
 
 @dataclass
@@ -325,9 +324,9 @@ class MegatronPretrainingCyclicSampler(BaseMegatronSampler):
             global_batch_size=global_batch_size,
             pad_samples_to_global_batch_size=pad_samples_to_global_batch_size,
         )
-        assert (
-            pad_samples_to_global_batch_size is False
-        ), "`MegatronPretrainingCyclicSampler` does not support sample padding"
+        assert pad_samples_to_global_batch_size is False, (
+            "`MegatronPretrainingCyclicSampler` does not support sample padding"
+        )
         self.last_batch_size = self.total_samples % self.micro_batch_times_data_parallel_size
 
     def __len__(self):

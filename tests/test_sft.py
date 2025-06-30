@@ -142,12 +142,12 @@ def _test_sft_loss_masking(parallel_context: ParallelContext):
         # The masked_mean function normalizes the loss by the number of tokens in the mask:
         #   (loss * label_mask).sum() / label_mask.sum()
         # Instead, we just verify that masking produces a different loss value.
-        assert not torch.allclose(
-            loss_half, loss_all, rtol=1e-6, atol=1e-6, equal_nan=False
-        ), "Partial mask should produce different loss than full mask"
-        assert not torch.allclose(
-            loss_almost_none, loss_all, rtol=1e-6, atol=1e-6, equal_nan=False
-        ), "Almost no tokens should produce different loss than full mask"
+        assert not torch.allclose(loss_half, loss_all, rtol=1e-6, atol=1e-6, equal_nan=False), (
+            "Partial mask should produce different loss than full mask"
+        )
+        assert not torch.allclose(loss_almost_none, loss_all, rtol=1e-6, atol=1e-6, equal_nan=False), (
+            "Almost no tokens should produce different loss than full mask"
+        )
         # Test with all tokens masked out (should return NaN)
         with torch.no_grad():
             loss_none = model(**none_included)["loss"]
@@ -278,9 +278,9 @@ def _test_right_padding_mask(parallel_context: ParallelContext):
     print(f"Control loss (changed unpadded tokens): {control_loss.item()}")
 
     # Verify that changing unpadded tokens DOES affect the output
-    assert not torch.allclose(
-        original_loss, control_loss, rtol=1e-4, atol=1e-4
-    ), "Changing unpadded input tokens should affect the loss"
+    assert not torch.allclose(original_loss, control_loss, rtol=1e-4, atol=1e-4), (
+        "Changing unpadded input tokens should affect the loss"
+    )
 
     parallel_context.destroy()
 

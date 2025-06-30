@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch LLaMa MoE model."""
+"""PyTorch LLaMa MoE model."""
+
 import math
 from typing import Dict, Optional, Union, List
 
@@ -125,9 +126,9 @@ class RotaryEmbedding(nn.Module):
 class CoreAttention(nn.Module):
     def __init__(self, config: LlaMoEConfig, parallel_config: Optional[ParallelismArgs], layer_idx: int):
         super().__init__()
-        assert (
-            config.hidden_size % config.num_attention_heads == 0
-        ), f"Hidden size {config.hidden_size} must be divisible by number of attention heads {config.num_attention_heads}."
+        assert config.hidden_size % config.num_attention_heads == 0, (
+            f"Hidden size {config.hidden_size} must be divisible by number of attention heads {config.num_attention_heads}."
+        )
         self.d_qk = config.hidden_size // config.num_attention_heads
         self.d_v = config.hidden_size // config.num_attention_heads
 
@@ -206,13 +207,13 @@ class CausalSelfAttention(nn.Module, AttachableStore):
     ):
         super().__init__()
         # Tensor parallel considerations: We split tensors along head dimension
-        assert (
-            config.num_attention_heads % tp_pg.size() == 0
-        ), f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        assert config.num_attention_heads % tp_pg.size() == 0, (
+            f"Number of attention heads ({config.num_attention_heads}) must be divisible by TP size ({tp_pg.size()})."
+        )
         try:
-            assert (
-                config.num_key_value_heads % tp_pg.size() == 0
-            ), f"Number of key/value heads ({config.num_key_value_heads}) must be divisible by TP size ({tp_pg.size()})."
+            assert config.num_key_value_heads % tp_pg.size() == 0, (
+                f"Number of key/value heads ({config.num_key_value_heads}) must be divisible by TP size ({tp_pg.size()})."
+            )
         except AttributeError:
             log_rank(
                 "WARNING: num_key_value_heads not defined, assuming it is equal to num_attention_heads",
@@ -222,9 +223,9 @@ class CausalSelfAttention(nn.Module, AttachableStore):
             )
             # If num_key_value_heads is not defined, we assume that it is equal to num_attention_heads
             config.num_key_value_heads = config.num_attention_heads
-        assert (
-            config.num_attention_heads % config.num_key_value_heads == 0
-        ), f"Number of attention heads ({config.num_attention_heads}) must be divisible by number of key/value heads ({config.num_key_value_heads})."
+        assert config.num_attention_heads % config.num_key_value_heads == 0, (
+            f"Number of attention heads ({config.num_attention_heads}) must be divisible by number of key/value heads ({config.num_key_value_heads})."
+        )
         self.n_local_q_heads = config.num_attention_heads // tp_pg.size()
         self.n_local_kv_heads = config.num_key_value_heads // tp_pg.size()
         self.n_repeats = config.num_attention_heads // config.num_key_value_heads
@@ -345,7 +346,9 @@ class CausalSelfAttention(nn.Module, AttachableStore):
                 # but [ False, False, False, False,  True,  True,  False,  False,  True,  True] is not (can't mask in the middle of sequence)
                 assert ~(
                     sequence_mask[:, :-1] & (~sequence_mask[:, 1:])  # True is never followed by False
-                ).any(), "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                ).any(), (
+                    "Can't mask in the middle of sequence, please make sure that pads are at the left of the sequence if existing"
+                )
 
                 # preallocate k_cache, v_cache to self.prefill_kv_len
                 k_cache = torch.zeros(
@@ -438,12 +441,12 @@ class CausalSelfAttention(nn.Module, AttachableStore):
                         dim=1,
                     )
 
-                assert (
-                    k_cache.shape[1] == self.rotary_embedding.end
-                ), f"Cache size {k_cache.shape[1]} is smaller than rotary embedding end {self.rotary_embedding.end}"
-                assert (
-                    v_cache.shape[1] == self.rotary_embedding.end
-                ), f"Cache size {v_cache.shape[1]} is smaller than rotary embedding end {self.rotary_embedding.end}"
+                assert k_cache.shape[1] == self.rotary_embedding.end, (
+                    f"Cache size {k_cache.shape[1]} is smaller than rotary embedding end {self.rotary_embedding.end}"
+                )
+                assert v_cache.shape[1] == self.rotary_embedding.end, (
+                    f"Cache size {v_cache.shape[1]} is smaller than rotary embedding end {self.rotary_embedding.end}"
+                )
 
                 # [batch_size, seq_length, num_heads, d_qk]
                 query_states = query_states.view(
@@ -913,8 +916,10 @@ class LlaMoEForTraining(NanotronModel):
             if param.is_tied
             else name
             for name, param in model.named_parameters()
-        }, f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
-    
+        }, (
+            f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        )
+
     def get_block_compute_costs(self):
         """Computes the compute cost of each block in the model so that we can do a better job of load balancing."""
         return self.model.get_block_compute_costs()

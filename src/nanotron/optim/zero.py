@@ -35,9 +35,9 @@ class ZeroDistributedOptimizer(InheritFromOtherOptimizer):
         if len(named_params_or_groups) == 0 or isinstance(named_params_or_groups[0], dict):
             # case where named_params_or_groups is Iterable[Dict[str, Any]]
             for d in named_params_or_groups:
-                assert (
-                    "named_params" in d
-                ), f"param_groups must contain a 'named_params' key, got a dict with keys {d.keys()}"
+                assert "named_params" in d, (
+                    f"param_groups must contain a 'named_params' key, got a dict with keys {d.keys()}"
+                )
 
             # keep only named_params_or_groups that require grads
             named_params_or_groups = [
@@ -399,9 +399,9 @@ def merge_dp_shard_in_zero1_optimizer(
     parallel_context: ParallelContext,
     map_location: Optional[str] = None,
 ) -> Dict[Tuple[int, int], Dict[str, torch.Tensor]]:  # (pp_rank, tp_rank): param_name -> optim_state
-    assert (
-        optimizer_config["configs"]["param_name_to_dp_rank_offsets"] is not None
-    ), "param_name_to_dp_rank_offsets is required"
+    assert optimizer_config["configs"]["param_name_to_dp_rank_offsets"] is not None, (
+        "param_name_to_dp_rank_offsets is required"
+    )
 
     checkpoint_pp_size = optimizer_config["parallelism"]["pp_size"]
     checkpoint_tp_size = optimizer_config["parallelism"]["tp_size"]
@@ -474,9 +474,9 @@ def merge_dp_shard_in_zero1_optimizer(
             (pp_rank, 0, tp_rank)
         ]["param_groups"]
 
-    assert len(ckp_merged_dp_shards_optim_states) == int(checkpoint_pp_size) * int(
-        checkpoint_tp_size
-    ), f"Expect {int(checkpoint_pp_size) * int(checkpoint_tp_size)} merged dp shards, got {len(ckp_merged_dp_shards_optim_states)}"
+    assert len(ckp_merged_dp_shards_optim_states) == int(checkpoint_pp_size) * int(checkpoint_tp_size), (
+        f"Expect {int(checkpoint_pp_size) * int(checkpoint_tp_size)} merged dp shards, got {len(ckp_merged_dp_shards_optim_states)}"
+    )
 
     # NOTE: sanity check, make sure each merged checkpoint
     # has the same dict key as the original checkpoint
@@ -484,10 +484,10 @@ def merge_dp_shard_in_zero1_optimizer(
         # NOTE: we remove the gradient_accumulator key from sanity check
         # because we don't merge gradient_accumulator states
         missing_keys = set(ckp_optim_state.keys()) - set(ckp_sharded_optim_states[(pp_rank, 0, tp_rank)].keys())
-        assert (
-            len(missing_keys - {"gradient_accumulator"}) == 0
-        ), "Expected the merged dp shards to have the same keys as the original dp shards, but merged dp shard misses: {}".format(
-            missing_keys
+        assert len(missing_keys - {"gradient_accumulator"}) == 0, (
+            "Expected the merged dp shards to have the same keys as the original dp shards, but merged dp shard misses: {}".format(
+                missing_keys
+            )
         )
 
     return ckp_merged_dp_shards_optim_states

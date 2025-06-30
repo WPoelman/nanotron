@@ -1,4 +1,5 @@
 """Ring attention implementation using flash attention adapted from https://github.com/zhuzilin/ring-flash-attention/"""
+
 import torch
 import torch.distributed as dist
 from flash_attn.flash_attn_interface import (
@@ -469,7 +470,6 @@ def _update_out_and_lse(
     block_out: torch.Tensor,
     block_lse: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-
     block_out = block_out.to(torch.float32)
     block_lse = block_lse.transpose(-2, -1).unsqueeze(dim=-1)
 

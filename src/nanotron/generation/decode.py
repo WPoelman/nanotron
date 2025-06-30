@@ -278,7 +278,6 @@ def decode_text(
                 start_time, elapsed_time_first_iteration = time.perf_counter(), 0
 
             for generation_iter in tqdm(range(max_new_tokens), desc="Generating"):
-
                 if is_bench and generation_iter == 0:
                     torch.cuda.synchronize()
                     elapsed_time_first_iteration = start_time - time.perf_counter()
@@ -506,15 +505,15 @@ def decode_text(
                 assert len(state.store) == 0
 
                 if dist.get_rank(parallel_context.pp_pg) == decoder_input_rank:
-                    assert (
-                        batch_generated_ids.shape[0] == batch.input_ids.shape[0]
-                    ), f"Batch size needs to match {batch_generated_ids.shape[0]} != {batch.input_ids.shape[0]}"
-                    assert (
-                        batch_generated_mask.shape[0] == batch.input_ids.shape[0]
-                    ), f"Batch size needs to match {batch_generated_mask.shape[0]} != {batch.input_ids.shape[0]}"
-                    assert (
-                        batch_generated_ids.shape[1] == batch_generated_mask.shape[1]
-                    ), f"Sequence length needs to match {batch_generated_ids.shape[1]} != {batch_generated_mask.shape[0]}"
+                    assert batch_generated_ids.shape[0] == batch.input_ids.shape[0], (
+                        f"Batch size needs to match {batch_generated_ids.shape[0]} != {batch.input_ids.shape[0]}"
+                    )
+                    assert batch_generated_mask.shape[0] == batch.input_ids.shape[0], (
+                        f"Batch size needs to match {batch_generated_mask.shape[0]} != {batch.input_ids.shape[0]}"
+                    )
+                    assert batch_generated_ids.shape[1] == batch_generated_mask.shape[1], (
+                        f"Sequence length needs to match {batch_generated_ids.shape[1]} != {batch_generated_mask.shape[0]}"
+                    )
 
                 for i, (generated_ids, generated_mask) in enumerate(zip(batch_generated_ids, batch_generated_mask)):
                     # TODO @thomasw21: We could actually have all ranks return the output, since it's been already broadcasted
@@ -788,15 +787,15 @@ def decode_tokenized(
                 assert len(state.store) == 0
 
                 if dist.get_rank(parallel_context.pp_pg) == decoder_input_rank:
-                    assert (
-                        batch_generated_ids.shape[0] == batch.input_ids.shape[0]
-                    ), f"Batch size needs to match {batch_generated_ids.shape[0]} != {batch.input_ids.shape[0]}"
-                    assert (
-                        batch_generated_mask.shape[0] == batch.input_ids.shape[0]
-                    ), f"Batch size needs to match {batch_generated_mask.shape[0]} != {batch.input_ids.shape[0]}"
-                    assert (
-                        batch_generated_ids.shape[1] == batch_generated_mask.shape[1]
-                    ), f"Sequence length needs to match {batch_generated_ids.shape[1]} != {batch_generated_mask.shape[0]}"
+                    assert batch_generated_ids.shape[0] == batch.input_ids.shape[0], (
+                        f"Batch size needs to match {batch_generated_ids.shape[0]} != {batch.input_ids.shape[0]}"
+                    )
+                    assert batch_generated_mask.shape[0] == batch.input_ids.shape[0], (
+                        f"Batch size needs to match {batch_generated_mask.shape[0]} != {batch.input_ids.shape[0]}"
+                    )
+                    assert batch_generated_ids.shape[1] == batch_generated_mask.shape[1], (
+                        f"Sequence length needs to match {batch_generated_ids.shape[1]} != {batch_generated_mask.shape[0]}"
+                    )
 
                 for i, (generated_ids, generated_mask) in enumerate(zip(batch_generated_ids, batch_generated_mask)):
                     # TODO @thomasw21: We could actually have all ranks return the output, since it's been already broadcasted

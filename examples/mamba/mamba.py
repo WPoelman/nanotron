@@ -475,9 +475,9 @@ class MambaDecoderLayer(nn.Module):
 
         if self.fused_add_norm:
             assert RMSNorm is not None, "RMSNorm import fails"
-            assert isinstance(
-                self.norm, (nn.LayerNorm, RMSNorm)
-            ), "Only LayerNorm and RMSNorm are supported for fused_add_norm"
+            assert isinstance(self.norm, (nn.LayerNorm, RMSNorm)), (
+                "Only LayerNorm and RMSNorm are supported for fused_add_norm"
+            )
 
     def forward(
         self,
@@ -804,7 +804,7 @@ class MambaForTraining(NanotronModel):
             label_mask=label_mask,
         )["loss"]
         return {"loss": loss}
-    
+
     def get_named_params_without_weight_decay(self):
         # get full name with "A_log", "D"
         named_param_without_weight_decay = []
@@ -934,7 +934,9 @@ class MambaForTraining(NanotronModel):
             if param.is_tied
             else name
             for name, param in model.named_parameters()
-        }, f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        }, (
+            f"Somehow the initialized set of parameters don't match:\n - Expected: { {name for name, _ in model.named_parameters()} }\n - Got: {initialized_parameters}"
+        )
 
     @staticmethod
     def get_embeddings_lm_head_tied_names():

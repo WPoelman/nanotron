@@ -167,12 +167,12 @@ def _test_save_and_load_optimizer(parallel_context: ParallelContext, test_contex
             if isinstance(gpu_value, torch.Tensor):
                 assert torch.equal(gpu_value.cpu(), cpu_value), f"Values don't match for param {param_id}, key {key}"
                 if key != "step":  # Skip device checks for 'step' key
-                    assert (
-                        cpu_value.device.type == "cpu"
-                    ), f"CPU optimizer state should be on CPU for param {param_id}, key {key}"
-                    assert (
-                        gpu_value.device.type == "cuda"
-                    ), f"GPU optimizer state should be on CUDA for param {param_id}, key {key}"
+                    assert cpu_value.device.type == "cpu", (
+                        f"CPU optimizer state should be on CPU for param {param_id}, key {key}"
+                    )
+                    assert gpu_value.device.type == "cuda", (
+                        f"GPU optimizer state should be on CUDA for param {param_id}, key {key}"
+                    )
             else:
                 assert gpu_value == cpu_value, f"Non-tensor values don't match for param {param_id}, key {key}"
 

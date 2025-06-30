@@ -354,7 +354,7 @@ def create_nanotron_config(args) -> Config:
         * parallelism.expert_parallel_size
     )
     total_tokens = gbs * args.steps
-    print(f"GBS: {(gbs)/1e6:.2f}M, total training tokens: {(total_tokens)/1e9:.2f}B")
+    print(f"GBS: {(gbs) / 1e6:.2f}M, total training tokens: {(total_tokens) / 1e9:.2f}B")
 
     # Configure learning rate schedule
     lr_scheduler = LRSchedulerArgs(

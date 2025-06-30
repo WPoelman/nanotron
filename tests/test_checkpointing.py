@@ -20,9 +20,9 @@ class CheckpointedModel(nn.Module):
         x = self.dense1(x)
         if self.is_checkpointed and self.fwd_counter == 0:
             assert not x.requires_grad, "x should not require grad when checkpointed, because fwd runs in no_grad mode"
-            assert (
-                x.grad_fn is None
-            ), "x should not store any activation when checkpointed, because fwd runs in no_grad mode"
+            assert x.grad_fn is None, (
+                "x should not store any activation when checkpointed, because fwd runs in no_grad mode"
+            )
         x = self.dense2(x)
         x = self.dropout(x)
         self.fwd_counter += 1

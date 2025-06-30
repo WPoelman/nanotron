@@ -40,7 +40,6 @@ def save_weights(model: nn.Module, parallel_context: ParallelContext, root_folde
 
     # We chunk everything by `tp_world_size` in order to make sure that we gather all the weights into a single device before saving it
     for name, param_or_buffer in tqdm(model.state_dict().items(), desc="Saving weights"):
-
         # exp_rank=0 saves all weights whereas exp_rank>0 save only MLP weights
         if dist.get_rank(parallel_context.ep_pg) != 0:
             if "experts" not in name:
@@ -299,9 +298,9 @@ def load_weights(
                         # The checkpoint version is read from the meta file
                         current_checkpoint_version = checkpoint_version
                     finally:
-                        assert (
-                            current_checkpoint_version == checkpoint_version
-                        ), f"Checkpoint version mismatch at {shards_path[0]}."
+                        assert current_checkpoint_version == checkpoint_version, (
+                            f"Checkpoint version mismatch at {shards_path[0]}."
+                        )
 
                 if checkpoint_version <= CHECKPOINT_VERSION:
                     load_sharded_param_latest(

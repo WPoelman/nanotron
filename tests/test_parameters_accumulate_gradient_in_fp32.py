@@ -490,9 +490,9 @@ def _test_tied_weights_sync_with_grad_accum_in_fp32(
             name = tied_info.get_full_name_from_module_id_to_prefix(module_id_to_prefix=module_id_to_prefix)
 
         # Each parameter is sharded across DP.
-        assert (
-            name in accumulator.parameters
-        ), f"`accumulator.parameters` must have all params {name} not in `accumulator.parameters`. Existing keys are: {accumulator.parameters}"
+        assert name in accumulator.parameters, (
+            f"`accumulator.parameters` must have all params {name} not in `accumulator.parameters`. Existing keys are: {accumulator.parameters}"
+        )
 
         fp32_grad = accumulator.get_grad_buffer(name=name)
 
@@ -564,9 +564,9 @@ def _test_tied_weights_sync_with_grad_accum_in_fp32(
         # Tied weights are synced using the fp32 grad buffers. Let's make sure they still point to the same memory
         # When using ZeRODistributedOptimizer gradients are slices across dp
         dp_slice_fp_32_grad_buffer = fp32_grad_buffer.view(-1)[slice(*accumulator.param_name_to_offsets[name])]
-        assert (
-            dp_slice_fp_32_grad_buffer.data_ptr() == fp32_grad.data_ptr()
-        ), "dp_slice_fp_32_grad_buffer and fp32_grad should point to the same memory"
+        assert dp_slice_fp_32_grad_buffer.data_ptr() == fp32_grad.data_ptr(), (
+            "dp_slice_fp_32_grad_buffer and fp32_grad should point to the same memory"
+        )
 
         group = parallel_context.world_ranks_to_pg[group_ranks]
 

@@ -1,6 +1,7 @@
 """
 Modular masking utilities for FlexAttention implementation.
 """
+
 from typing import Callable, Optional, Tuple
 
 import torch
@@ -107,6 +108,7 @@ def create_attention_mask(
     seq_len = query.size(2)
 
     if sliding_window is not None:
+
         def sliding_window_causal(b: int, h: int, q_idx: int, kv_idx: int) -> bool:
             causal_mask = q_idx >= kv_idx
             window_mask = q_idx - kv_idx <= sliding_window
@@ -117,6 +119,7 @@ def create_attention_mask(
 
         mask_func = sliding_window_causal
     else:
+
         def doc_causal_mask(b: int, h: int, q_idx: int, kv_idx: int) -> bool:
             causal_mask = q_idx >= kv_idx
             doc_mask = doc_mask_func(b, h, q_idx, kv_idx)
@@ -142,27 +145,25 @@ def create_block_mask_cached(mask_func, B, H, Q_LEN, KV_LEN, device="cuda"):
 
 def _offsets_to_doc_ids_tensor(offsets):
     """Converts offsets to document IDs tensor.
-    
+
     Args:
         offsets: Tensor of shape [num_docs + 1] containing cumulative token counts
-        
+
     Returns:
         Tensor of document IDs for each token position
     """
     device = offsets.device
     counts = offsets[1:] - offsets[:-1]
-    return torch.repeat_interleave(
-        torch.arange(len(counts), device=device, dtype=torch.int32), counts
-    )
+    return torch.repeat_interleave(torch.arange(len(counts), device=device, dtype=torch.int32), counts)
 
 
 def lengths_to_offsets(lengths, device):
     """Converts a list of document lengths to offsets.
-    
+
     Args:
         lengths: List or tensor of document lengths
         device: Device for the resulting tensor
-        
+
     Returns:
         Tensor of cumulative offsets
     """
@@ -172,36 +173,36 @@ def lengths_to_offsets(lengths, device):
         offsets = torch.tensor(offsets, device=device, dtype=torch.int32)
     else:
         offsets = torch.cat([torch.zeros(1, device=device, dtype=torch.int32), lengths])
-    
+
     offsets = torch.cumsum(offsets, dim=-1)
     return offsets
 
 
 def generate_doc_mask_mod(inner_mask_func, offsets):
     """Generates a document-aware mask function.
-    
+
     Args:
         inner_mask_func: Base mask function to apply within each document
         offsets: Tensor of shape [num_docs + 1] containing cumulative token counts
-        
+
     Returns:
         Document-aware mask function
     """
     document_ids = _offsets_to_doc_ids_tensor(offsets)
-    
+
     def doc_mask_mod(b, h, q_idx, kv_idx):
         # Only attend within the same document
         same_doc = document_ids[q_idx] == document_ids[kv_idx]
-        
+
         # Convert to document-local indices
         q_local_idx = q_idx - offsets[document_ids[q_idx]]
         kv_local_idx = kv_idx - offsets[document_ids[kv_idx]]
-        
+
         # Apply the inner mask function using document-local indices
         inner_mask = inner_mask_func(b, h, q_local_idx, kv_local_idx)
-        
+
         return same_doc & inner_mask
-    
+
     return doc_mask_mod
 
 
@@ -226,7 +227,7 @@ def get_block_mask_from_type(
     document_ids: Optional[torch.Tensor] = None,
 ) -> Optional[torch.Tensor]:
     """Get a specific block mask based on mask type.
-    
+
     Args:
         flex_attention_mask: String identifier for mask type
         query: Query states tensor [batch_size, num_heads, seq_len, head_dim]
@@ -234,28 +235,29 @@ def get_block_mask_from_type(
         sliding_window: Optional sliding window size
         position_ids: Optional tensor of position IDs for document masking
         document_ids: Optional explicit document IDs tensor
-        
+
     Returns:
         Block mask tensor or None
     """
     if flex_attention_mask is None:
         return None
-        
+
     seq_len = query.size(2)
     device = query.device
-    
+
     if flex_attention_mask == "causal":
         # Simple causal mask - flex_attention handles this efficiently by default
         return None
-        
+
     elif flex_attention_mask == "sliding_window":
         # Assert that sliding_window is provided and valid
-        assert sliding_window is not None and sliding_window > 0, \
+        assert sliding_window is not None and sliding_window > 0, (
             f"For 'sliding_window' mask type, sliding_window must be provided and > 0, got {sliding_window}"
-            
+        )
+
         # Use partial to bind the window size parameter
         mask_func = functools.partial(sliding_window_causal_mask_func, sliding_window)
-        
+
         return create_block_mask_cached(
             mask_func,
             B=None,
@@ -264,66 +266,67 @@ def get_block_mask_from_type(
             KV_LEN=seq_len,
             device=device,
         )
-        
+
     elif flex_attention_mask == "document":
         # Assert that at least one of document_ids or position_ids is provided
-        assert document_ids is not None or position_ids is not None, \
+        assert document_ids is not None or position_ids is not None, (
             "For 'document' mask type, either document_ids or position_ids must be provided"
-        
+        )
+
         # Handle document masking
         if document_ids is not None:
             # Ensure document_ids is on the right device
             document_ids = document_ids.to(device)
-            
+
             # Validate document_ids
             assert document_ids.numel() > 0, "document_ids tensor cannot be empty"
-            
+
             # If explicit document_ids are provided, convert to offsets format
             unique_docs = torch.unique(document_ids, sorted=True)
             offsets = []
             current_offset = 0
-            
+
             offsets.append(current_offset)
             for doc_id in unique_docs:
                 doc_length = (document_ids == doc_id).sum().item()
                 current_offset += doc_length
                 offsets.append(current_offset)
-                
+
             offsets = torch.tensor(offsets, device=device, dtype=torch.int32)
-            
+
         elif position_ids is not None:
             # Ensure position_ids is on the right device
             position_ids = position_ids.to(device)
-            
+
             # Validate position_ids
             assert position_ids.numel() > 0, "position_ids tensor cannot be empty"
-            
+
             # If position_ids are provided (where 0s indicate document starts)
             if position_ids.dim() == 2:
                 position_ids = position_ids.view(-1)
-                
+
             # Find document boundaries (positions where position_id is 0)
             doc_starts = torch.where(position_ids == 0)[0]
-            
+
             # Validate document boundaries
             assert doc_starts.numel() > 0, "No document boundaries found in position_ids (no zeros found)"
-            
+
             # Add the total sequence length as the final boundary
             doc_ends = torch.cat([doc_starts[1:], torch.tensor([len(position_ids)], device=device)])
-            
+
             # Calculate document lengths
             doc_lengths = doc_ends - doc_starts
-            
+
             # Convert to offsets
             offsets = lengths_to_offsets(doc_lengths, device)
-            
+
             # Adjust offsets to account for actual starting positions
             if doc_starts[0] != 0:
                 offsets = offsets + doc_starts[0]
-        
+
         # Generate document-aware causal mask
         doc_mask_mod = generate_doc_mask_mod(causal_mask_func, offsets)
-        
+
         return create_block_mask_cached(
             doc_mask_mod,
             B=None,  # Not needed since we handle batching in the mask function
@@ -333,9 +336,11 @@ def get_block_mask_from_type(
             device=device,
         )
     else:
-        raise ValueError(f"Unknown flex_attention_mask type: {flex_attention_mask}. " 
-                         f"Supported types are: 'causal', 'sliding_window', 'document'")
-    
+        raise ValueError(
+            f"Unknown flex_attention_mask type: {flex_attention_mask}. "
+            f"Supported types are: 'causal', 'sliding_window', 'document'"
+        )
+
     return None
 
 
@@ -346,13 +351,13 @@ def get_attention_mod_from_type(
     value: torch.Tensor,
 ) -> Optional[Callable]:
     """Get a specific attention modifier based on mask type.
-    
+
     Args:
         flex_attention_mask: String identifier for mask type
         query: Query states tensor [batch_size, num_heads, seq_len, head_dim]
         key: Key states tensor [batch_size, num_kv_heads, seq_len, head_dim]
         value: Value states tensor [batch_size, num_kv_heads, seq_len, head_dim]
-        
+
     Returns:
         Callable attention modifier function or None
     """
@@ -363,41 +368,45 @@ def get_attention_mod_from_type(
 def validate_attention_args(
     flex_attention_mask: Optional[str],
     sliding_window: Optional[int] = None,
-    position_ids: Optional[torch.Tensor] = None, 
-    document_ids: Optional[torch.Tensor] = None
+    position_ids: Optional[torch.Tensor] = None,
+    document_ids: Optional[torch.Tensor] = None,
 ) -> None:
     """Validates arguments for attention mask creation.
-    
+
     Args:
         flex_attention_mask: String identifier for mask type
         sliding_window: Optional sliding window size
         position_ids: Optional position IDs tensor
         document_ids: Optional document IDs tensor
-        
+
     Raises:
         ValueError: If arguments are not valid for the specified mask type
     """
     if flex_attention_mask is None:
         return
-        
+
     if flex_attention_mask == "causal":
         # No additional parameters needed for causal mask
         return
-        
+
     elif flex_attention_mask == "sliding_window":
         if sliding_window is None or sliding_window <= 0:
-            raise ValueError(f"For 'sliding_window' mask type, sliding_window must be a positive integer, got {sliding_window}")
-            
+            raise ValueError(
+                f"For 'sliding_window' mask type, sliding_window must be a positive integer, got {sliding_window}"
+            )
+
     elif flex_attention_mask == "document":
         if document_ids is None and position_ids is None:
             raise ValueError("For 'document' mask type, either document_ids or position_ids must be provided")
-            
+
         if position_ids is not None and position_ids.numel() == 0:
             raise ValueError("position_ids tensor cannot be empty")
-            
+
         if document_ids is not None and document_ids.numel() == 0:
             raise ValueError("document_ids tensor cannot be empty")
-            
+
     else:
-        raise ValueError(f"Unknown flex_attention_mask type: {flex_attention_mask}. "
-                         f"Supported types are: 'causal', 'sliding_window', 'document'")
+        raise ValueError(
+            f"Unknown flex_attention_mask type: {flex_attention_mask}. "
+            f"Supported types are: 'causal', 'sliding_window', 'document'"
+        )

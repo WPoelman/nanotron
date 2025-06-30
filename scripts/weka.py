@@ -81,7 +81,7 @@ def get_warmup_percentages(input_paths: Union[str, List[str]]) -> dict:
                 warmup_percentage = (total_cached / total_size) * 100
                 results[folder_path] = round(warmup_percentage, 2)
                 print(
-                    f"{folder_path}: {results[folder_path]}% warmed up ({total_cached/1e9:.2f}GB / {total_size/1e9:.2f}GB)"
+                    f"{folder_path}: {results[folder_path]}% warmed up ({total_cached / 1e9:.2f}GB / {total_size / 1e9:.2f}GB)"
                 )
             else:
                 results[folder_path] = 0.0
