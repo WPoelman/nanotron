@@ -1,4 +1,5 @@
-""" Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information."""
+"""Example python script to generate a YAML config file which can be used to run a training with nanotron. Refer to "examples" section in the `/README.md` for more information."""
+
 import os
 
 from nanotron.config import (
@@ -73,9 +74,9 @@ optimizer = OptimizerArgs(
 )
 
 parallelism = ParallelismArgs(
-    dp=2,
-    pp=2,
-    tp=2,
+    dp=1,
+    pp=1,
+    tp=1,
     pp_engine="1f1b",
     tp_mode="REDUCE_SCATTER",
     tp_linear_async_communication=True,

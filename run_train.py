@@ -7,16 +7,18 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1 # important for some distributed operations
 torchrun --nproc_per_node=8 run_train.py --config-file examples/config_tiny_llama.yaml
 ```
 """
+
 import argparse
 import time
 from pprint import pformat
-from typing import Dict, Optional, cast
+from typing import Dict, Optional
+
+from torch.utils.data import DataLoader
 
 import nanotron.distributed as dist
 from nanotron import logging
 from nanotron.config import (
     DataArgs,
-    DatasetStageArgs,
     NanosetDatasetsArgs,
     PretrainDatasetsArgs,
     Qwen2Config,
@@ -33,16 +35,13 @@ from nanotron.data.processing import (
 from nanotron.data.sft_processing import prepare_sft_dataset
 from nanotron.helpers import (
     compute_remain_train_steps_of_a_data_stage_from_ckp,
-    get_consumed_train_samples_of_a_data_stage_from_ckp,
 )
 from nanotron.logging import log_rank
 from nanotron.parallel.pipeline_parallel.utils import get_input_output_pp_ranks
 from nanotron.sanity_checks import sanity_check_dataloader
-from nanotron.trainer import DistributedTrainer
+from nanotron.trainer import DataStageMetadata, DistributedTrainer
 from nanotron.utils import main_rank_first
-from torch.utils.data import DataLoader
-from nanotron.trainer import DataStageMetadata
-from collections import defaultdict
+
 try:
     from huggingface_hub import __version__ as hf_hub_version
     from transformers import AutoTokenizer
@@ -61,7 +60,7 @@ logger = logging.get_logger(__name__)
 def get_dataloader_from_data_stage(
     trainer: DistributedTrainer,
     data: DataArgs,
-    consumed_train_samples_stage: int,
+    consumed_train_samples: int,
     consumed_tokens_per_dataset_folder: Dict[str, int],
     last_stages_consumed_tokens_per_dataset_folder: Dict[str, int],
     num_remaining_train_steps: int,
@@ -71,11 +70,11 @@ def get_dataloader_from_data_stage(
     Returns a dataloader for a given data stage.
 
     data: The data configuration for the current stage.
-    consumed_train_samples_stage: The number of samples consumed by the model in the this stage (each stage starts from zero).
+    consumed_train_samples: The number of samples consumed by the model in the this stage (each stage starts from zero).
     consumed_tokens_per_dataset_folder: The number of tokens consumed by the model in previous stages to avoid reseeing them, because the sampler has restarted for this stage.
     num_remaining_train_steps: The number of remaining training steps for this stage.
     """
-    assert consumed_train_samples_stage >= 0, "consumed_train_samples_stage should be greater than 0"
+    assert consumed_train_samples >= 0, "consumed_train_samples should be greater than 0"
     assert num_remaining_train_steps >= 0, "num_remaining_train_steps should be greater than 0"
 
     # First, we need to know which ranks to feed the dataloader to
@@ -125,14 +124,14 @@ def get_dataloader_from_data_stage(
             tokenizer.padding_side = "left"
             sequence_sep_tokens = [tokenizer.bos_token, tokenizer.eos_token, tokenizer.pad_token, tokenizer.unk_token]
             # assert bos or eos are present
-            assert (
-                tokenizer.bos_token is not None or tokenizer.eos_token is not None
-            ), f"Tokenizer must have either bos or eos token, but found none for {tokenizer_path}"
+            assert tokenizer.bos_token is not None or tokenizer.eos_token is not None, (
+                f"Tokenizer must have either bos or eos token, but found none for {tokenizer_path}"
+            )
 
             # Check that tokenizer's vocab size is smaller than the model's vocab size
-            assert (
-                tokenizer.vocab_size <= trainer.model_config.vocab_size
-            ), f"Tokenizer's vocab size ({tokenizer.vocab_size}) is larger than the model's vocab size ({trainer.model_config.vocab_size})"
+            assert tokenizer.vocab_size <= trainer.model_config.vocab_size, (
+                f"Tokenizer's vocab size ({tokenizer.vocab_size}) is larger than the model's vocab size ({trainer.model_config.vocab_size})"
+            )
 
             # Different processing for SFT vs pretraining
             if isinstance(data.dataset, SFTDatasetsArgs):
@@ -167,7 +166,7 @@ def get_dataloader_from_data_stage(
                 input_pp_rank=input_pp_rank,
                 output_pp_rank=output_pp_rank,
                 micro_batch_size=trainer.micro_batch_size,
-                consumed_train_samples_stage=consumed_train_samples_stage,
+                consumed_train_samples=consumed_train_samples,
                 dataloader_num_workers=data.num_loading_workers,
                 seed_worker=data.seed,
                 dataloader_drop_last=True,
@@ -192,9 +191,9 @@ def get_dataloader_from_data_stage(
 
         tokenizer_path = trainer.config.tokenizer.tokenizer_name_or_path
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        assert (
-            len(tokenizer) == trainer.model_config.vocab_size
-        ), f"Tokenizer vocab size ({len(tokenizer)}) does not match model config vocab size ({trainer.model_config.vocab_size}). "
+        assert len(tokenizer) == trainer.model_config.vocab_size, (
+            f"Tokenizer vocab size ({len(tokenizer)}) does not match model config vocab size ({trainer.model_config.vocab_size}). "
+        )
         log_rank(
             f"[TokenizedBytes] Creating TokenizedBytes with {len(data.dataset.dataset_folder)} dataset folders and {trainer.config.tokens.train_steps * trainer.global_batch_size} train samples",
             logger=logger,
@@ -216,7 +215,7 @@ def get_dataloader_from_data_stage(
             shuffle=data.dataset.shuffle_files,
             eos_token_id=tokenizer.eos_token_id,
             seed=data.seed,
-            consumed_samples=consumed_train_samples_stage,
+            consumed_samples=consumed_train_samples,
             consumed_tokens_per_dataset_folder=consumed_tokens_per_dataset_folder,
             last_stages_consumed_tokens_per_dataset_folder=last_stages_consumed_tokens_per_dataset_folder,
         )
@@ -227,8 +226,9 @@ def get_dataloader_from_data_stage(
             global_batch_size=trainer.global_batch_size,
             num_workers=data.num_loading_workers,
             cfg=data.dataset,
-            consumed_samples=consumed_train_samples_stage,
-            num_samples=trainer.config.tokens.train_steps * trainer.global_batch_size, # TODO: this overshoots what's needed by the current stage, but it doesnt matter?
+            consumed_samples=consumed_train_samples,
+            num_samples=trainer.config.tokens.train_steps
+            * trainer.global_batch_size,  # TODO: this overshoots what's needed by the current stage, but it doesnt matter?
             parallel_context=trainer.parallel_context,
             input_pp_rank=input_pp_rank,
             output_pp_rank=output_pp_rank,
@@ -326,19 +326,23 @@ def get_dataloader(
     # WARNING: we assume we train on last stage
     stage_idx = len(trainer.config.data_stages) - 1
     stage_args = trainer.config.data_stages[stage_idx]
-    if trainer.iteration_step+1 == stage_args.start_training_step:
+    if trainer.iteration_step + 1 == stage_args.start_training_step:
         log_rank(f"Starting new stage {stage_args.name}", logger=logger, level=logging.INFO, rank=0)
         # we start a new stage
         if stage_idx >= len(trainer.metadata.data_stages):
-            trainer.metadata.data_stages.append(DataStageMetadata(
-                name=stage_args.name,
-                start_training_step=stage_args.start_training_step,
-                consumed_train_samples=0,
-                consumed_tokens_per_dataset_folder={},
-                sequence_length=trainer.sequence_length,
-            ))
+            trainer.metadata.data_stages.append(
+                DataStageMetadata(
+                    name=stage_args.name,
+                    start_training_step=stage_args.start_training_step,
+                    consumed_train_samples=0,
+                    consumed_tokens_per_dataset_folder={},
+                    sequence_length=trainer.sequence_length,
+                )
+            )
     elif len(trainer.metadata.data_stages) < len(trainer.config.data_stages):
-        raise ValueError(f"If you're trying to start a new stage, you need to set `start_training_step` to the step after the last stage's: {trainer.iteration_step+1}")
+        raise ValueError(
+            f"If you're trying to start a new stage, you need to set `start_training_step` to the step after the last stage's: {trainer.iteration_step + 1}"
+        )
     current_stage = trainer.metadata.data_stages[stage_idx]
     cur_stage_consumed_train_samples = current_stage.consumed_train_samples
     consumed_tokens_per_dataset_folder = current_stage.consumed_tokens_per_dataset_folder
@@ -346,7 +350,7 @@ def get_dataloader(
 
     num_remaining_train_steps = compute_remain_train_steps_of_a_data_stage_from_ckp(
         current_stage, trainer.config, trainer.metadata
-    ) # TODO: check this
+    )  # TODO: check this
     log_rank(
         f"Current stage: {current_stage.name} has {num_remaining_train_steps} remaining training steps and has consumed {cur_stage_consumed_train_samples} samples"
         f"Consumed tokens per dataset folder: {pformat(consumed_tokens_per_dataset_folder)}",
@@ -375,14 +379,14 @@ def get_dataloader(
         last_stages_consumed_tokens_per_dataset_folder = {}
         for stage in trainer.metadata.data_stages[:-1]:
             for folder_path, consumed_tokens in stage.consumed_tokens_per_dataset_folder.items():
-                last_stages_consumed_tokens_per_dataset_folder[folder_path] = last_stages_consumed_tokens_per_dataset_folder.get(folder_path, 0) + consumed_tokens  
-
-
+                last_stages_consumed_tokens_per_dataset_folder[folder_path] = (
+                    last_stages_consumed_tokens_per_dataset_folder.get(folder_path, 0) + consumed_tokens
+                )
 
     dataloaders[current_stage.name] = get_dataloader_from_data_stage(
         trainer,
         stage_args_data,
-        consumed_train_samples_stage=cur_stage_consumed_train_samples,
+        consumed_train_samples=cur_stage_consumed_train_samples,
         consumed_tokens_per_dataset_folder=consumed_tokens_per_dataset_folder,
         last_stages_consumed_tokens_per_dataset_folder=last_stages_consumed_tokens_per_dataset_folder,
         num_remaining_train_steps=num_remaining_train_steps,

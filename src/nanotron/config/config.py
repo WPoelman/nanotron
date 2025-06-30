@@ -147,16 +147,16 @@ class S3UploadArgs:
 class NanosetDatasetsArgs:
     dataset_folder: Union[str, List[str]]
     dataset_weights: Optional[List[float]] = None
-    dataset_read_path: Optional[
-        Union[str, List[str]]
-    ] = None  # Path to local file/copy to read from. If it exists, we read from this folder instead of from dataset_folder. Useful when we offload some data to remote and only keep the needed files on disk.
+    dataset_read_path: Optional[Union[str, List[str]]] = (
+        None  # Path to local file/copy to read from. If it exists, we read from this folder instead of from dataset_folder. Useful when we offload some data to remote and only keep the needed files on disk.
+    )
     # Tokenizer config, assuming all datasets use the same tokenizer
     tokenizer_name: Optional[str] = None
     vocab_size: Optional[int] = None
     token_size_in_bytes: Optional[int] = None
-    return_positions: Optional[
-        bool
-    ] = True  # read positions stored in disk by datatrove if eos_token_id is None, else computed on the fly
+    return_positions: Optional[bool] = (
+        True  # read positions stored in disk by datatrove if eos_token_id is None, else computed on the fly
+    )
 
     # Tokenized bytes dataset config
     skip_in_stream: Optional[bool] = False
@@ -191,12 +191,12 @@ class NanosetDatasetsArgs:
                             self.token_size_in_bytes = int(token_size_in_bytes)
                             self.vocab_size = len(AutoTokenizer.from_pretrained(tokenizer_name).get_vocab())
                         else:
-                            assert (
-                                self.tokenizer_name == tokenizer_name
-                            ), f"Tokenizer name mismatch while reading datasets metadata file, found both {self.tokenizer_name} and {tokenizer_name}"
-                            assert self.token_size_in_bytes == int(
-                                token_size_in_bytes
-                            ), f"Token size mismatch while reading datasets metadata file, found both {self.token_size_in_bytes} and {token_size_in_bytes}"
+                            assert self.tokenizer_name == tokenizer_name, (
+                                f"Tokenizer name mismatch while reading datasets metadata file, found both {self.tokenizer_name} and {tokenizer_name}"
+                            )
+                            assert self.token_size_in_bytes == int(token_size_in_bytes), (
+                                f"Token size mismatch while reading datasets metadata file, found both {self.token_size_in_bytes} and {token_size_in_bytes}"
+                            )
 
         # Check if dataset_read_path is provided and matches the number of dataset folders
         if self.dataset_read_path is not None and len(self.dataset_read_path) != len(self.dataset_folder):
@@ -227,7 +227,7 @@ class DatasetStageArgs:
     name: str
     start_training_step: int
     data: DataArgs
-    sequence_length: Optional[int] = None # if None, we use the sequence length from the config
+    sequence_length: Optional[int] = None  # if None, we use the sequence length from the config
 
     def __post_init__(self):
         if self.start_training_step < 0:
@@ -274,7 +274,7 @@ class GeneralArgs:
     run: Optional[str] = None
     seed: Optional[int] = None
     step: Optional[int] = None
-    consumed_train_samples: Optional[int] = None # TODO: remove this
+    consumed_train_samples: Optional[int] = None  # TODO: remove this
     benchmark_csv_path: Optional[Path] = None
     ignore_sanity_checks: bool = True
 
@@ -301,6 +301,7 @@ class ProfilerArgs:
     profile_memory: bool = False
     with_stack: bool = True
     export_chrome_trace: bool = False
+
 
 @dataclass
 class ModelArgs:
@@ -411,9 +412,9 @@ class OptimizerArgs:
     clip_grad: Optional[float]
     accumulate_grad_in_fp32: bool
     learning_rate_scheduler: LRSchedulerArgs
-    weight_decay_exclude_named_params: Optional[
-        List[str]
-    ] = None  # List of regex patterns to exclude parameters from weight decay
+    weight_decay_exclude_named_params: Optional[List[str]] = (
+        None  # List of regex patterns to exclude parameters from weight decay
+    )
 
     def __post_init__(self):
         if self.weight_decay_exclude_named_params is None:
@@ -445,6 +446,9 @@ class Config:
     general: GeneralArgs
     parallelism: ParallelismArgs
     model: ModelArgs
+    train_languages: Optional[List[str]] = None
+    test_languages: Optional[List[str]] = None
+    sampling_method: Optional[str] = None  # TODO(Wessel): make into enum
     tokenizer: Optional[TokenizerArgs] = None
     checkpoints: Optional[CheckpointsArgs] = None
     logging: Optional[LoggingArgs] = None
@@ -462,25 +466,24 @@ class Config:
         return cls(**{f.name: None for f in cls_fields})
 
     def __post_init__(self):
-
         if self.s3_upload is not None:
             self.s3_upload.__post_init__()
             if self.lighteval is not None:
                 if self.lighteval.eval_interval is None:
                     self.lighteval.eval_interval = self.checkpoints.checkpoint_interval
                 else:
-                    assert (
-                        self.lighteval.eval_interval % self.checkpoints.checkpoint_interval == 0
-                    ), f"eval_interval={self.lighteval.eval_interval} must be a multiple of checkpoint_interval={self.checkpoints.checkpoint_interval}"
+                    assert self.lighteval.eval_interval % self.checkpoints.checkpoint_interval == 0, (
+                        f"eval_interval={self.lighteval.eval_interval} must be a multiple of checkpoint_interval={self.checkpoints.checkpoint_interval}"
+                    )
 
         # Some final sanity checks across separate arguments sections:
         if self.profiler is not None and self.profiler.profiler_export_path is not None:
             total_profiling_steps = self.profiler.skip_first + self.profiler.repeat * (
                 self.profiler.wait + self.profiler.warmup + self.profiler.active
             )
-            assert (
-                self.tokens.train_steps >= total_profiling_steps
-            ), f"Profiling steps ({total_profiling_steps}) must be less than or equal to train steps ({self.tokens.train_steps})"
+            assert self.tokens.train_steps >= total_profiling_steps, (
+                f"Profiling steps ({total_profiling_steps}) must be less than or equal to train steps ({self.tokens.train_steps})"
+            )
 
         if self.optimizer is not None and self.optimizer.learning_rate_scheduler.lr_decay_steps is None:
             self.optimizer.learning_rate_scheduler.lr_decay_steps = (
@@ -491,9 +494,9 @@ class Config:
             self.data_stages = sorted(self.data_stages, key=lambda stage: stage.start_training_step)
             names = [stage.name for stage in self.data_stages]
             training_steps = [stage.start_training_step for stage in self.data_stages]
-            assert any(
-                stage.start_training_step == 1 for stage in self.data_stages
-            ), "You must have a training stage starting at 1 in the config's data_stages"
+            assert any(stage.start_training_step == 1 for stage in self.data_stages), (
+                "You must have a training stage starting at 1 in the config's data_stages"
+            )
 
             for stage in self.data_stages:
                 if names.count(stage.name) > 1:
@@ -510,17 +513,17 @@ class Config:
                         logger.warning(
                             f"Setting model's vocab_size to {self.model.model_config.vocab_size} from dataset's vocab_size ({stage.data.dataset.vocab_size})"
                         )
-                    assert (
-                        self.model.model_config.vocab_size == stage.data.dataset.vocab_size
-                    ), f"Model's vocab_size ({self.model.model_config.vocab_size}) does not match dataset's ({stage.data.dataset.dataset_folder}) vocab_size ({stage.data.dataset.vocab_size})"
+                    assert self.model.model_config.vocab_size == stage.data.dataset.vocab_size, (
+                        f"Model's vocab_size ({self.model.model_config.vocab_size}) does not match dataset's ({stage.data.dataset.dataset_folder}) vocab_size ({stage.data.dataset.vocab_size})"
+                    )
                     if self.tokenizer is None:
                         self.tokenizer = TokenizerArgs(tokenizer_name_or_path=stage.data.dataset.tokenizer_name)
                         logger.warning(
                             f"Setting tokenizer to {self.tokenizer.tokenizer_name_or_path} from dataset's tokenizer ({stage.data.dataset.tokenizer_name})"
                         )
-                    assert (
-                        self.tokenizer.tokenizer_name_or_path == stage.data.dataset.tokenizer_name
-                    ), f"Tokenizer passed in config ({self.tokenizer.tokenizer_name_or_path}) does not match dataset's ({stage.data.dataset.dataset_folder}) tokenizer ({stage.data.dataset.tokenizer_name})"
+                    assert self.tokenizer.tokenizer_name_or_path == stage.data.dataset.tokenizer_name, (
+                        f"Tokenizer passed in config ({self.tokenizer.tokenizer_name_or_path}) does not match dataset's ({stage.data.dataset.dataset_folder}) tokenizer ({stage.data.dataset.tokenizer_name})"
+                    )
 
             # NOTE: must order the stages by start_training_step from lowest to highest
             assert all(
@@ -533,18 +536,18 @@ class Config:
         #     assert self.tokenizer.tokenizer_name_or_path is not None
 
         # Model verifications
-        assert (
-            self.model.model_config.num_attention_heads % self.parallelism.tp == 0
-        ), f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be divisible by tp ({self.parallelism.tp})"
-        assert (
-            self.model.model_config.num_attention_heads >= self.model.model_config.num_key_value_heads
-        ), f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be >= num_key_value_heads ({self.model.model_config.num_key_value_heads})"
-        assert (
-            self.model.model_config.num_key_value_heads >= self.parallelism.tp
-        ), f"num_key_value_heads ({self.model.model_config.num_key_value_heads}) must be >= tp ({self.parallelism.tp})"  # TODO: remove this once we ensure KV heads get duplicated correctly
-        assert (
-            self.model.model_config.num_attention_heads % self.model.model_config.num_key_value_heads == 0
-        ), f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be divisible by num_key_value_heads ({self.model.model_config.num_key_value_heads})"
+        assert self.model.model_config.num_attention_heads % self.parallelism.tp == 0, (
+            f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be divisible by tp ({self.parallelism.tp})"
+        )
+        assert self.model.model_config.num_attention_heads >= self.model.model_config.num_key_value_heads, (
+            f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be >= num_key_value_heads ({self.model.model_config.num_key_value_heads})"
+        )
+        assert self.model.model_config.num_key_value_heads >= self.parallelism.tp, (
+            f"num_key_value_heads ({self.model.model_config.num_key_value_heads}) must be >= tp ({self.parallelism.tp})"
+        )  # TODO: remove this once we ensure KV heads get duplicated correctly
+        assert self.model.model_config.num_attention_heads % self.model.model_config.num_key_value_heads == 0, (
+            f"num_attention_heads ({self.model.model_config.num_attention_heads}) must be divisible by num_key_value_heads ({self.model.model_config.num_key_value_heads})"
+        )
 
         # data_stages
         if self.data_stages is not None:
