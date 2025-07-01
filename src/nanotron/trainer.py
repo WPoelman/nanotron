@@ -302,7 +302,7 @@ class DistributedTrainer:
         if self.config.language_metrics:
             language_metrics_logger = LanguageMetricsLogger(
                 config=self.config.language_metrics,
-                tokenizer=self.config.tokenizer,
+                tokenizer_config=self.config.tokenizer,
                 parallel_context=self.parallel_context,
             )
         else:

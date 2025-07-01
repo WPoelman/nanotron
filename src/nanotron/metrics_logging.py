@@ -265,7 +265,7 @@ class MetricsLogger:
         metrics.update(self.collect_embeddings_metrics(model))
         metrics.update(self.collect_parameter_metrics(model))
 
-        if self.language_metrics_logger:
+        if self.language_metrics_logger and (current_step % self.config.compute_interval == 0):
             metrics.update(self.language_metrics_logger.compute_test_set_metrics(model, current_step))
             metrics.update(self.language_metrics_logger.compute_generative_metrics(model, current_step))
 

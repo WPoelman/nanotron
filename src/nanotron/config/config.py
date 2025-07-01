@@ -2,7 +2,7 @@ import datetime
 import glob
 import os
 from dataclasses import dataclass, fields
-from pathlib import Path
+from pathlib import Path, PosixPath, PurePath
 from typing import List, Optional, Type, Union
 
 import dacite
@@ -11,7 +11,7 @@ import yaml
 from dacite import from_dict
 from datasets.download.streaming_download_manager import xPath
 from transformers import AutoTokenizer
-from yaml.loader import SafeLoader
+from yaml.loader import Loader
 
 from nanotron.config.lighteval_config import LightEvalConfig
 from nanotron.config.models_config import (
@@ -211,11 +211,17 @@ class NanosetDatasetsArgs:
 
 
 @dataclass
+class TextFileDatasetArgs:
+    name: str
+    train_files: List[str]
+
+
+@dataclass
 class DataArgs:
     """Arguments related to the data and data files processing"""
 
     dataset: Optional[
-        Union[PretrainDatasetsArgs, NanosetDatasetsArgs, SFTDatasetsArgs]
+        Union[PretrainDatasetsArgs, NanosetDatasetsArgs, SFTDatasetsArgs, TextFileDatasetArgs]
     ]  # If None we use dummy_infinite_data_generator
     seed: Optional[int]
     num_loading_workers: Optional[int] = 1
@@ -449,9 +455,9 @@ class LanguageMetricsArgs:
     """Arguments for per-language metrics tracking"""
 
     compute_interval: int = 100
+    results_path: Optional[Path] = None  # where to store csv(s)
     # Paths to individual files
-    test_datasets: Optional[List[Path]] = None  # assume corpus_name/eng_Latn.txt format etc.
-    bpec_dataset: Optional[Path] = None  # for normalizing BPC -> Bits per Englsh Character corpus
+    test_datasets: Optional[List[str]] = None  # assume corpus_name/eng_Latn.txt format etc.
     generation_samples: int = 1000  # Number of tokens to generate for Zipf/Heaps
     batch_size: int = 32  # Batch size for evaluation
 
@@ -602,7 +608,7 @@ class Config:
 
     @classmethod
     def load_from_yaml(cls, file_path: str):
-        config_dict = yaml.load(open(file_path), Loader=SafeLoader)
+        config_dict = yaml.load(open(file_path), Loader=Loader)
         return get_config_from_dict(config_dict, config_class=cls)
 
     def as_dict(self) -> dict:
@@ -667,6 +673,7 @@ def get_config_from_dict(
                 RecomputeGranularity: lambda x: RecomputeGranularity[x.upper()],
                 InitScalingMethod: lambda x: InitScalingMethod[x.upper()],
                 SamplerType: lambda x: SamplerType[x.upper()],
+                List[Union[Path, PosixPath, PurePath]]: lambda x: [Path(p) for p in x],
             },
             # strict_unions_match=True,
             strict=True,
@@ -693,7 +700,7 @@ def get_config_from_file(
     """
     # Open the file and load the file
     with open(config_path) as f:
-        config_dict = yaml.load(f, Loader=SafeLoader)
+        config_dict = yaml.load(f, Loader=Loader)
 
     config = get_config_from_dict(
         config_dict,

@@ -1,10 +1,13 @@
 import math
 from collections import Counter
+from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn.functional as F
+from transformers import AutoTokenizer
 
 from nanotron.config import GenerationArgs, LanguageMetricsArgs, TokenizerArgs
 from nanotron.generation.decode import GenerationInput, decode_text
@@ -14,9 +17,9 @@ from nanotron.parallel import ParallelContext
 class LanguageMetricsLogger:
     """Extended metrics logger for per-language evaluation"""
 
-    def __init__(self, config: LanguageMetricsArgs, tokenizer: TokenizerArgs, parallel_context: ParallelContext):
+    def __init__(self, config: LanguageMetricsArgs, tokenizer_config: TokenizerArgs, parallel_context: ParallelContext):
         self.config = config
-        self.tokenizer = tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_config.tokenizer_name_or_path)
         self.parallel_context = parallel_context
 
         # go from "<corpus>/<language>"" -> sequences
@@ -27,36 +30,23 @@ class LanguageMetricsLogger:
     def _load_test_datasets(self):
         """Load test datasets for each language"""
         for path in self.config.test_datasets:
+            path = Path(path)  # TODO(Wessel) figure out how the yaml parser doesn't break on a list of Path objects...
             with open(path, "r", encoding="utf-8") as f:
                 lang = path.stem
                 corpus = path.parent.name
-                self.test_datasets[f"{corpus}/{lang}"] = [line.strip() for line in f if line.strip()]
+                self.test_datasets[f"{corpus}/{lang}"] = [line.strip() for line in f.readlines()]
 
     def compute_test_set_metrics(self, model: torch.nn.Module, current_step: int) -> Dict[str, torch.Tensor]:
-        """Compute NLL, PPL, BPC, BPEC, IP, MRR for each language"""
-        if current_step % self.config.compute_interval != 0:
-            return {}
-
-        metrics = {}
+        """Compute NLL, PPL, BPC, MRR for each language"""
+        metrics = {"current_step": current_step}
         model.eval()
-
-        # Compute English BPC as baseline for BPEC and IP
-        # TODO(Wessel): for the monolingual setup, we have to get the monolingual BPC results from English
-        #               for the multilingual setup, we use the multilingual model for the English BPC
-        english_bpc = self._compute_language_bpc(model, self.config.bpec_dataset)
 
         with torch.no_grad():
             for key in self.config.languages.keys():
-                lang_metrics = self._compute_language_test_metrics(model, key)
+                metrics.update(self._compute_language_test_metrics(model, key))
 
-                if key != self.config.bpec_dataset:
-                    lang_bpc = lang_metrics[f"{key}/bpc"]
-                    bpec = lang_bpc / english_bpc
-                    ip = english_bpc / lang_bpc
-                    lang_metrics[f"{key}/bpec"] = torch.tensor(bpec)
-                    lang_metrics[f"{key}/ip"] = torch.tensor(ip)
-
-                metrics.update(lang_metrics)
+        if self.config.results_path:
+            self._write_metrics_to_csv(metrics)
 
         model.train()
         return metrics
@@ -154,13 +144,7 @@ class LanguageMetricsLogger:
 
     def compute_generative_metrics(self, model: torch.nn.Module, current_step: int) -> Dict[str, torch.Tensor]:
         """Compute Zipf's law and Heaps law metrics"""
-        if not self.config.enabled:
-            return {}
-
-        if current_step % self.config.compute_interval != 0:
-            return {}
-
-        metrics = {}
+        metrics = {"current_step": current_step}
         model.eval()
 
         with torch.no_grad():
@@ -174,6 +158,9 @@ class LanguageMetricsLogger:
 
                 heaps_score = self._compute_heaps_adherence(generated_tokens)
                 metrics[f"{lang}/heaps_adherence"] = torch.tensor(heaps_score)
+
+        if self.config.results_path:
+            self._write_metrics_to_csv(metrics)
 
         model.train()
         return metrics
@@ -247,3 +234,9 @@ class LanguageMetricsLogger:
         # Linear regression to find β
         correlation = np.corrcoef(log_n, log_v)[0, 1]
         return abs(correlation)
+
+    def _write_metrics_to_csv(self, metrics: Dict[str, torch.Tensor]):
+        metrics = {k: v.item() if isinstance(v, torch.Tensor) else v for k, v in metrics.items()}
+        pd.DataFrame(metrics).to_csv(
+            self.config.results_path, mode="a", index=False, header=not self.config.results_path.exists()
+        )
